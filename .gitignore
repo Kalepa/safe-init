@@ -1,0 +1,35 @@
+# Distribution / packaging
+.Python
+env/
+build/
+develop-eggs/
+dist/
+common.egg-info/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+*.egg-info/
+.installed.cfg
+*.egg
+__pycache__/
+
+# Serverless directories
+.serverless
+
+# pyenv
+.python-version
+
+venv/
+.venv/
+.idea/
+node_modules/
+.env
+config.yml.local
+.terraform
+
+dist/

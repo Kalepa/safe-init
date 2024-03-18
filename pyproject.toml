@@ -1,0 +1,134 @@
+[tool.poetry]
+name = "safe-init"
+version = "0.1.0.dev0"
+description = ""
+license = "MIT"
+authors = ["Maciej Wilczyński <maciej@lupine.software>"]
+repository = "https://github.com/kalepa/safe-init"
+readme = "README.md"
+packages = [{ include = "safe_init" }]
+include = ["safe_init/py.typed"]
+
+[tool.poetry.dependencies]
+python = "~3.11"
+structlog = "^24.1.0"
+sentry-sdk = "<2.0.0"
+requests = "^2.31.0"
+awslambdaric = ">=2.0.10"
+boto3 = ">=1.20.0"
+boto3-type-annotations = ">=0.3.1"
+datadog-lambda = "5.90.0"
+ddtrace = "2.7.2"
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^7.3.1"
+mypy = "^1.4.1"
+types-ujson = ">=5.8.0.0"
+types-colorama = ">=0.4.15.11"
+types-urllib3 = ">=1.26.25.13,<2.0.0"
+types-requests = ">=2.31.0.1"
+boto3-type-annotations-with-docs = ">=0.3.1"
+fastapi = { version = "^0.95.0"}
+starlette = { version = "^0.27.0"}
+coverage = "^7.4.4"
+pytest-cov = "^4.1.0"
+
+[[tool.poetry.source]]
+name = "PyPI"
+priority = "primary"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.black]
+line-length = 120
+preview = true
+target-version = ['py311']
+
+[tool.isort]
+profile = "black"
+skip = ["__init__.py"]
+
+[tool.ruff]
+line-length = 120
+target-version = "py311"
+extend-exclude = [
+    "test/",
+    "tests/",
+    "scripts/",
+    "bin/",
+    "**/__init__.py",
+]
+
+[tool.ruff.lint]
+select = [
+    "A",
+    "B",
+    "C",
+    "E",
+    "F",
+    "G",
+    "I",
+    "N",
+    "Q",
+    "S",
+    "T",
+    "W",
+    "ANN",
+    "ARG",
+    "BLE",
+    "COM",
+    "DJ",
+    "DTZ",
+    "EM",
+    "ERA",
+    "EXE",
+    "FBT",
+    "ICN",
+    "INP",
+    "ISC",
+    "NPY",
+    "PD",
+    "PGH",
+    "PIE",
+    "PL",
+    "PT",
+    "PTH",
+    "PYI",
+    "RET",
+    "RSE",
+    "RUF",
+    "SIM",
+    "SLF",
+    "TCH",
+    "TID",
+    "TRY",
+    "UP",
+    "YTT",
+]
+extend-ignore = [
+    "ANN101",
+    "BLE001",
+    "ANN003",
+    "PLR0912",
+    "PLW0602",
+    "PLW0603",
+    "C901",
+    "PLR0913",
+    "PTH110",
+    "PTH123",
+    "S108",
+]
+
+
+[tool.mypy]
+python_version = "3.11"
+strict = true
+show_error_codes = true
+disallow_untyped_calls = false
+disallow_any_generics = false
+warn_return_any = false
+ignore_missing_imports = true
+disable_error_code = "abstract"
+exclude = ['^test/', '^scripts/', '^bin/', '.*__init__.py']
