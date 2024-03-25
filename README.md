@@ -1,6 +1,7 @@
 # Safe Init
 
 [![PyPI version](https://badge.fury.io/py/safe-init.svg)](https://badge.fury.io/py/safe-init)
+[![Documentation Status](https://readthedocs.org/projects/safe-init/badge/?version=latest)](https://safe-init.readthedocs.io/en/latest/?badge=latest)
 [![Python versions](https://img.shields.io/pypi/pyversions/safe-init.svg)](https://pypi.org/project/safe-init/)
 [![License](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 
@@ -103,6 +104,10 @@ safe_init.slack.safe_init_slack_webhook_url = 'https://hooks.slack.com/services/
 ```
 
 And just like that, Safe Init will start sending notifications to your custom Slack webhook. It's like having your own personal messenger pigeon! 🕊️
+
+## Full Documentation
+
+For more detailed information on Safe Init's features, configuration options, and advanced usage, check out the full documentation on [Read the Docs](https://safe-init.readthedocs.io/). It's chock-full of useful tips, examples, and best practices to help you get the most out of Safe Init.
 
 ## Contributing
 
