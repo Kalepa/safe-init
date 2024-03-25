@@ -1,0 +1,28 @@
+site_name: Safe Init
+theme:
+  name: "readthedocs"
+plugins:
+  - search
+  - gen-files:
+      scripts:
+        - scripts/gen_ref_pages.py
+  - literate-nav:
+      nav_file: SUMMARY.md
+  - section-index
+  - mkdocstrings:
+      handlers:
+        python:
+          paths: [safe_init]
+
+nav:
+  - Home: index.md
+  - Getting Started: getting_started.md
+  - Usage: usage.md
+  - Features: features.md
+  - Configuration: configuration.md
+  - Integrations: integrations.md
+  - Advanced Usage: advanced_usage.md
+  - Troubleshooting: troubleshooting.md
+  - License: LICENSE.md
+  - Acknowledgements: acknowledgements.md
+  - Code Reference: reference/
