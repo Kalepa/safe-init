@@ -40,7 +40,7 @@ jobs:
         echo "file_name=$(ls dist/*.whl) | xargs -n 1 basename" >> $GITHUB_OUTPUT
 
     - name: Publish to PyPI
-      uses: pypa/gh-action-pypi-publish@master
+      uses: pypa/gh-action-pypi-publish@release/v1
 
     - name: Upload wheel as release asset
       uses: actions/upload-release-asset@v1
