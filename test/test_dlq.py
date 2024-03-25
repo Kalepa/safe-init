@@ -281,6 +281,7 @@ class TestDLQ:
     def test_get_dlq_url(self):
         assert _get_dlq_url() == "https://sqs.us-east-1.amazonaws.com/123456789012/test-queue"
 
+    @patch.dict(os.environ, {"AWS_DEFAULT_REGION": "us-east-1"})
     def test_get_sqs_client(self):
         sqs_client = _get_sqs_client()
         assert isinstance(sqs_client, botocore.client.BaseClient)
