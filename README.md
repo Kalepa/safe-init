@@ -1,4 +1,4 @@
-# Safe Init
+# Safe Init: Simplifying AWS Lambda Error Handling and Monitoring
 
 [![PyPI version](https://badge.fury.io/py/safe-init.svg)](https://badge.fury.io/py/safe-init)
 [![Documentation Status](https://readthedocs.org/projects/safe-init/badge/?version=latest)](https://safe-init.readthedocs.io/en/latest/?badge=latest)
