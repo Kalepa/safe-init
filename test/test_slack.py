@@ -44,7 +44,7 @@ class TestSlackNotify:
         )
         assert (
             kwargs["json"]["attachments"][0]["blocks"][5]["text"]["text"]
-            == ":pepeok: The error has been sent to Sentry."
+            == ":ok_hand: The error has been sent to Sentry."
         )
 
     @patch("requests.post", side_effect=requests.exceptions.Timeout)
@@ -124,7 +124,7 @@ class TestSlackNotify:
         )
         assert (
             kwargs["json"]["attachments"][0]["blocks"][5]["text"]["text"]
-            == ":pepeok: The error has been sent to Sentry."
+            == ":ok_hand: The error has been sent to Sentry."
         )
         mock_log_exception.assert_called_once()
         args, kwargs = mock_log_exception.call_args

@@ -34,3 +34,9 @@ Set the `SAFE_INIT_HANDLER` environment variable to point to your original handl
 - [Advanced Usage](advanced_usage.md): Explore advanced use cases and customization options.
 
 Safe Init is open-source and community-driven. Contributions, feedback, and questions are welcome!
+
+## Quick Links
+
+- [GitHub Repository](https://github.com/Kalepa/safe-init): View the source code, contribute, and report issues.
+- [Documentation](https://safe-init.readthedocs.io): Read the full documentation and guides.
+- [PyPI Package](https://pypi.org/project/safe-init): Download the latest version from PyPI.

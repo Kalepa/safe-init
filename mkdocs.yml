@@ -25,4 +25,7 @@ nav:
   - Troubleshooting: troubleshooting.md
   - License: LICENSE.md
   - Acknowledgements: acknowledgements.md
+  - Quick Links:
+    - GitHub: https://github.com/Kalepa/safe-init
+    - PyPI: https://pypi.org/project/safe-init/
   - Code Reference: reference/

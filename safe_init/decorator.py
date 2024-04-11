@@ -169,7 +169,7 @@ class _SafeWrapper(_BaseWrapper):
             remaining_exec_time / 1000.0 - notify_sec_before_timeout,
             timeout_message=(
                 f"Impending Lambda execution timeout detected — less than {notify_sec_before_timeout} seconds left to"
-                f" configured timeout ({timeout_value}s)"
+                f" configured timeout ({timeout_value}s)."
             ),
             call_args=args,
             call_kwargs=kwargs,
