@@ -103,10 +103,11 @@ class TimeoutThread(threading.Thread):
             push_event_to_dlq(*self.call_args, **self.call_kwargs)
             log_debug("Pushed to DLQ")
 
-        calls_by_time = []
+        include_lambda_data = is_lambda_handler(self.call_args)
 
+        calls_by_time = []
         # Check if execution was traced to optionally include the trace in timeout warnings
-        if is_lambda_handler(self.call_args):
+        if include_lambda_data:
             log_debug("Checking for traces")
             if tracer.is_traced():
                 log_debug("Tracer is active")
@@ -121,10 +122,21 @@ class TimeoutThread(threading.Thread):
 
         sentry_result = sentry_capture(exc, fingerprint=self.execution_fingerprint)
         log_debug("Sentry capture result", sentry_capture_result=sentry_result)
+
+        additional_log_data: dict[str, Any] = {}
+        if calls_by_time:
+            additional_log_data["longest_calls"] = calls_by_time[:40]
+        if include_lambda_data:
+            additional_log_data["lambda_name"] = os.environ.get(
+                "AWS_LAMBDA_FUNCTION_NAME",
+                self.call_args[1].function_name,
+            )
+
         log_error(
             self.timeout_message,
             sentry_capture_result=sentry_result,
-            longest_calls=calls_by_time[:40],
+            exc_info=exc,
+            **additional_log_data,
         )
 
         if not os.getenv("SAFE_INIT_NO_SLACK_TIMEOUT_NOTIFICATIONS"):

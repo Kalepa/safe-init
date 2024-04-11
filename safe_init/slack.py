@@ -167,7 +167,7 @@ def slack_notify(
                     "text": (
                         ":rage: There also was an error sending the event to Sentry."
                         if not sentry_capture_result
-                        else ":pepeok: The error has been sent to Sentry."
+                        else ":ok_hand: The error has been sent to Sentry."
                     ),
                 },
             },

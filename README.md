@@ -7,6 +7,8 @@
 
 Safe Init is a Python library that provides a comprehensive set of tools for initializing AWS Lambda functions safely and handling errors and exceptions gracefully. It is designed to make your Lambda functions more robust, easier to debug, and less prone to unexpected failures. With Safe Init, you can focus on writing your core Lambda function logic while the library takes care of error handling, logging, notifications, and more.
 
+[Read the Docs](https://safe-init.readthedocs.io/en/latest/) | [GitHub Repository](https://github.com/Kalepa/safe-init) | [PyPI Package](https://pypi.org/project/safe-init/) 
+
 ## Features
 
 ### Error Handling and Logging
