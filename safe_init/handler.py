@@ -57,7 +57,7 @@ def _init_handler() -> Callable:
 
         return exec_result  # noqa: TRY300
     except Exception as e:
-        sentry_result = sentry_capture(e)
+        sentry_result = sentry_capture(e, tags={"handler": target_handler})
         msg = (
             "Failed to import handler"
             if isinstance(e, ImportError)

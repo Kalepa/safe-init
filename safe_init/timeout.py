@@ -117,20 +117,32 @@ class TimeoutThread(threading.Thread):
                 calls_by_time = sorted(aggregated_calls, key=lambda x: x[2], reverse=True)
                 log_debug("Sorted calls by time", calls_by_time=calls_by_time)
 
-        exc = SafeInitTimeoutWarning(self.timeout_message)
-        exc.traces = calls_by_time
-
-        sentry_result = sentry_capture(exc, fingerprint=self.execution_fingerprint)
-        log_debug("Sentry capture result", sentry_capture_result=sentry_result)
-
         additional_log_data: dict[str, Any] = {}
-        if calls_by_time:
-            additional_log_data["longest_calls"] = calls_by_time[:40]
         if include_lambda_data:
             additional_log_data["lambda_name"] = os.environ.get(
                 "AWS_LAMBDA_FUNCTION_NAME",
                 self.call_args[1].function_name,
             )
+
+        exc = SafeInitTimeoutWarning(self.timeout_message)
+        exc.traces = calls_by_time
+
+        sentry_result = sentry_capture(
+            exc,
+            fingerprint=self.execution_fingerprint,
+            tags={
+                "is_timeout": "true",
+                "timeout_value_seconds": str(self.waiting_time),
+                "is_lambda": "true" if include_lambda_data else "false",
+                "has_dlq": "true" if context_has_dlq() else "false",
+                **additional_log_data,
+            },
+            attachments={"longest_calls": calls_by_time} if calls_by_time else None,
+        )
+        log_debug("Sentry capture result", sentry_capture_result=sentry_result)
+
+        if calls_by_time:
+            additional_log_data["longest_calls"] = calls_by_time[:40]
 
         log_error(
             self.timeout_message,
