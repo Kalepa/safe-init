@@ -1,6 +1,7 @@
+import json
 import os
 import sys
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -99,6 +100,65 @@ def test_sentry_capture_with_none_sentry_dsn(mock_warning):
 
     assert sentry_capture(Exception("test exception")) is False
     mock_warning.assert_called_once_with("Sentry is not installed")
+
+
+@patch.dict(os.environ, {"SENTRY_DSN": "test_dsn", "UNIT_TEST_SENTRY": "1"})
+@patch("sentry_sdk.init")
+@patch("sentry_sdk.push_scope")
+@patch("sentry_sdk.capture_exception")
+def test_sentry_capture_with_fingerprint(mock_capture, mock_push_scope, mock_init):
+    mock_scope = MagicMock()
+    mock_push_scope.return_value.__enter__.return_value = mock_scope
+    from safe_init.sentry import sentry_capture
+
+    fingerprint = "test123"
+    exc = Exception("test exception")
+    assert sentry_capture(exc, fingerprint=fingerprint) is True
+    mock_init.assert_called_once_with("test_dsn", environment="dev")
+    mock_capture.assert_called_once_with(exc)
+    mock_scope.set_tag.assert_not_called()
+    assert mock_scope.fingerprint == fingerprint
+
+
+@patch.dict(os.environ, {"SENTRY_DSN": "test_dsn", "UNIT_TEST_SENTRY": "1"})
+@patch("sentry_sdk.init")
+@patch("sentry_sdk.push_scope")
+@patch("sentry_sdk.capture_exception")
+def test_sentry_capture_with_tags(mock_capture, mock_push_scope, mock_init):
+    mock_scope = MagicMock()
+    mock_push_scope.return_value.__enter__.return_value = mock_scope
+    from safe_init.sentry import sentry_capture
+
+    tags = {"t1": "value 1", "t2": "value 2"}
+    exc = Exception("test exception")
+    assert sentry_capture(exc, tags=tags) is True
+    mock_init.assert_called_once_with("test_dsn", environment="dev")
+    mock_capture.assert_called_once_with(exc)
+    for key, value in tags.items():
+        mock_scope.set_tag.assert_any_call(key, value)
+
+
+@patch.dict(os.environ, {"SENTRY_DSN": "test_dsn", "UNIT_TEST_SENTRY": "1"})
+@patch("sentry_sdk.init")
+@patch("safe_init.sentry.log_warning")
+@patch("sentry_sdk.push_scope")
+@patch("sentry_sdk.capture_exception")
+def test_sentry_capture_with_attachments(mock_capture, mock_push_scope, mock_log_warning, mock_init):
+    mock_scope = MagicMock()
+    mock_push_scope.return_value.__enter__.return_value = mock_scope
+    from safe_init.sentry import sentry_capture
+
+    inner = {"t1": "value 1", "t2": "value 2"}
+    outer = {"some_attachment": inner, "invalid_attachment": object()}
+    exc = Exception("test exception")
+    assert sentry_capture(exc, attachments=outer) is True
+    mock_capture.assert_called_once_with(exc)
+    mock_log_warning.assert_called_once_with(
+        "Failed to serialize attachment to JSON, skipping", key="invalid_attachment"
+    )
+    mock_scope.add_attachment.assert_called_once_with(
+        filename="some_attachment.json", bytes=json.dumps(inner).encode(), content_type="application/json"
+    )
 
 
 @patch.dict(os.environ, clear=True)
