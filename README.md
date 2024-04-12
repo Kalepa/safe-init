@@ -13,10 +13,18 @@ Safe Init is a Python library that provides a comprehensive set of tools for ini
 
 ### Error Handling and Logging
 - **Error Handling**: Safe Init wraps your Lambda handler with robust error handling and logging, ensuring that any unhandled exceptions are captured and logged for easy debugging.
+
+![Uncaught exception Slack notification](https://github.com/Kalepa/safe-init/blob/main/docs/static/uncaught_exception.png?raw=true)
+
 - **Execution Time Tracing**: Traces the execution time of all function calls within the Lambda handler, helping you identify performance bottlenecks and optimize your code.
+
+![Timeout Slack notification with traces](https://github.com/Kalepa/safe-init/blob/main/docs/static/traced_timeout.png?raw=true)
 
 ### Monitoring and Alerting
 - **Sentry Integration**: Automatically captures and logs exceptions with Sentry, providing detailed error tracking and monitoring capabilities.
+
+![Execution with missing Sentry init Slack notification](https://github.com/Kalepa/safe-init/blob/main/docs/static/missing_sentry.png?raw=true)
+
 - **Slack Notifications**: Sends informative Slack notifications with error details, keeping your team informed about any issues in real-time.
 - **Datadog Integration**: Integrates seamlessly with the Datadog Lambda wrapper for enhanced monitoring and metrics collection.
 
