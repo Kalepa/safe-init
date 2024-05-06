@@ -4,20 +4,20 @@ import pytest
 
 
 class TestInitHandler:
-    @patch("os.getenv", return_value="test.test_module.test_handler")
+    @patch.dict("os.environ", {"SAFE_INIT_HANDLER": "test.test_module.test_handler"})
     @patch("test.test_module.test_handler")
-    def test_init_handler_success(self, mock_handler, _):
+    def test_init_handler_success(self, mock_handler):
         from safe_init.handler import _init_handler
 
         mock_handler.return_value = "success"
         handler = _init_handler()
         assert handler() == "success"
 
-    @patch("os.getenv", return_value="")
-    def test_init_handler_missing_env_var(self, _):
-        from safe_init.handler import SafeInitError, _init_handler
+    @patch.dict("os.environ", {"SAFE_INIT_HANDLER": ""})
+    def test_init_handler_missing_env_var(self):
+        with pytest.raises(Exception, match="SAFE_INIT_HANDLER environment variable is not set"):
+            from safe_init.handler import SafeInitError, _init_handler
 
-        with pytest.raises(SafeInitError, match="SAFE_INIT_HANDLER environment variable is not set"):
             _init_handler()
 
     @patch("os.getenv", return_value="test.nonexistent_module.nonexistent_handler")

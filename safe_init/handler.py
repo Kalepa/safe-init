@@ -5,7 +5,7 @@ This module provides a function for wrapping a Lambda handler function with erro
 import hashlib
 import json
 import os
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
 from importlib import import_module
 
 from safe_init.decorator import safe_wrapper
@@ -16,9 +16,10 @@ from safe_init.errors import (
     SafeInitMissingSentryWarning,
 )
 from safe_init.safe_logging import log_exception, log_warning
+from safe_init.secrets import context_has_secrets_to_resolve, resolve_secrets
 from safe_init.sentry import sentry_capture
 from safe_init.slack import slack_notify
-from safe_init.utils import get_sentry_sdk
+from safe_init.utils import env, get_sentry_sdk
 
 
 def _init_handler() -> Callable:
@@ -39,12 +40,17 @@ def _init_handler() -> Callable:
             msg = "SAFE_INIT_HANDLER environment variable is not set"
             raise SafeInitError(msg)  # noqa: TRY301
 
-        _pre_import_hook(target_handler)
-        root_module, handler_name = target_handler.rsplit(".", 1)
-        handler_module = import_module(".".join(root_module.split("/")))
-        _post_import_hook(target_handler)
+        secrets_env: Mapping[str, str | None] = {}
+        if os.getenv("SAFE_INIT_RESOLVE_SECRETS", "false").lower() == "true" and context_has_secrets_to_resolve():
+            secrets_env = resolve_secrets()
 
-        exec_result = safe_wrapper(getattr(handler_module, handler_name))
+        with env(secrets_env):
+            _pre_import_hook(target_handler)
+            root_module, handler_name = target_handler.rsplit(".", 1)
+            handler_module = import_module(".".join(root_module.split("/")))
+            _post_import_hook(target_handler)
+
+            exec_result = safe_wrapper(getattr(handler_module, handler_name))
 
         if not os.getenv("SAFE_INIT_NO_DETECT_UNINITIALIZED_SENTRY") and not get_sentry_sdk().Hub.current.client:
             msg = "Detected missing Sentry initialization"
