@@ -32,6 +32,7 @@ Safe Init is a Python library that provides a comprehensive set of tools for ini
 - **Dead-Letter Queue (DLQ) Support**: Pushes failed events to a dead-letter queue for later processing, ensuring that no events are lost due to errors.
 - **Initialization Checks**: Detects missing Sentry initialization and Lambda init phase timeouts, preventing silent failures and providing early warning signs.
 - **Timeout Notifications**: Sends notifications a configurable number of seconds before the Lambda timeout occurs, giving you a heads-up to investigate and address potential issues.
+- **AWS Secrets Resolution**: Automatically resolves AWS Secrets Manager secrets in environment variables, simplifying secret management and access.
 
 ### Customization and Flexibility
 - **Customizable Logger**: Allows you to use a custom logger instead of the default structlog logger, providing flexibility to integrate with your existing logging setup.
@@ -82,6 +83,13 @@ Safe Init provides a wide range of configuration options to customize its behavi
 - `SAFE_INIT_NO_DATADOG_WRAPPER` (optional): Set to `'true'` to disable Datadog integration. If you're not using Datadog, this is the option for you!
 - `SAFE_INIT_AUTO_TRACE_LAMBDAS` (optional): Set to `'true'` to automatically trace all function calls in Lambda handlers. **Warning:** this can significantly increase memory usage and execution time. Use with caution!
 - `SAFE_INIT_LOGGING_USE_CONSOLE_RENDERER` (optional): Set to `'true'` to use the console renderer for logs. For those times when you want your logs to look extra fancy in the console.
+- `SAFE_INIT_RESOLVE_SECRETS` (optional): Set to `true` to resolve AWS Secrets Manager secrets in environment variables. Safe Init will automatically resolve secrets in environment variables with names ending with a configured suffix and save them in environment variables with the original name minus the suffix.
+- `SAFE_INIT_SECRET_ARN_SUFFIX` (optional): The suffix to use for resolving AWS Secrets Manager secrets in environment variables. Defaults to `_SECRET_ARN`. Use this to specify the suffix that marks environment variables as containing secret ARNs.
+- `SAFE_INIT_CACHE_SECRETS` (optional): Set to `true` to cache resolved secrets in Redis. Safe Init will cache resolved secrets in Redis to reduce the number of calls to AWS Secrets Manager.
+- `SAFE_INIT_SECRET_CACHE_REDIS_HOST`, `SAFE_INIT_SECRET_CACHE_REDIS_PORT`, `SAFE_INIT_SECRET_CACHE_REDIS_DB`, `SAFE_INIT_SECRET_CACHE_REDIS_USERNAME`, `SAFE_INIT_SECRET_CACHE_REDIS_PASSWORD` (host&port required if secret caching enabled): Redis connection details for caching resolved secrets. Use these environment variables to specify the Redis host, port, database, and password for caching resolved secrets.
+- `SAFE_INIT_SECRET_CACHE_TTL` (optional): TTL for cached secrets in seconds. Defaults to 1800 seconds (30 minutes). Use this to specify how long resolved secrets should be cached in Redis.
+- `SAFE_INIT_SECRET_CACHE_PREFIX` (optional): Prefix for cached secrets in Redis. Defaults to `safe-init-secret::`. Use this to specify the prefix for keys used to store cached secrets in Redis.
+- `SAFE_INIT_FAIL_ON_SECRET_RESOLUTION_ERROR` (optional): Set to `true` to fail the Lambda initialization if an error occurs during secret resolution. Safe Init will raise an exception if an error occurs during secret resolution, preventing the Lambda function from starting.
 
 With these configuration options, Safe Init provides a flexible and customizable way to enhance your Lambda functions' error handling, logging, and monitoring capabilities. Mix and match the options to suit your needs, and let Safe Init be your loyal companion on your Lambda adventures! 🚀
 

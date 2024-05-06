@@ -72,6 +72,52 @@ Receive proactive notifications before your Lambda function times out. This feat
 
 - `SAFE_INIT_NOTIFY_SEC_BEFORE_TIMEOUT`: Specifies the number of seconds before a Lambda timeout occurs when Safe Init should send a notification. This helps you become aware of and address timeout-related issues proactively.
 
+### AWS Secrets Manager Integration
+
+Safe Init integrates with AWS Secrets Manager, allowing you to securely store and retrieve sensitive information like API keys, database credentials, and other secrets. This feature ensures that your secrets are managed securely and are easily accessible within your Lambda functions.
+
+**Configuration Options:**
+- `SAFE_INIT_RESOLVE_SECRETS`: Set to `true` to resolve AWS Secrets Manager secrets in environment variables. Safe Init will automatically resolve secrets in environment variables with names ending with a configured suffix and save them in environment variables with the original name minus the suffix.
+- `SAFE_INIT_SECRET_ARN_SUFFIX`: The suffix to use for resolving AWS Secrets Manager secrets in environment variables. Defaults to `_SECRET_ARN`. Use this to specify the suffix that marks environment variables as containing secret ARNs.
+- `SAFE_INIT_CACHE_SECRETS`: Set to `true` to cache resolved secrets in Redis. Safe Init will cache resolved secrets in Redis to reduce the number of calls to AWS Secrets Manager.
+- `SAFE_INIT_SECRET_CACHE_REDIS_HOST`, `SAFE_INIT_SECRET_CACHE_REDIS_PORT`, `SAFE_INIT_SECRET_CACHE_REDIS_DB`, `SAFE_INIT_SECRET_CACHE_REDIS_USERNAME`, `SAFE_INIT_SECRET_CACHE_REDIS_PASSWORD` (host&port required if secret caching enabled): Redis connection details for caching resolved secrets. Use these environment variables to specify the Redis host, port, database, and password for caching resolved secrets.
+- `SAFE_INIT_SECRET_CACHE_TTL`: TTL for cached secrets in seconds. Defaults to 1800 seconds (30 minutes). Use this to specify how long resolved secrets should be cached in Redis.
+- `SAFE_INIT_SECRET_CACHE_PREFIX`: Prefix for cached secrets in Redis. Defaults to `safe-init-secret::`. Use this to specify the prefix for keys used to store cached secrets in Redis.
+- `SAFE_INIT_FAIL_ON_SECRET_RESOLUTION_ERROR` (optional): Set to `true` to fail the Lambda initialization if an error occurs during secret resolution. Safe Init will raise an exception if an error occurs during secret resolution, preventing the Lambda function from starting.
+
+**Example:**
+
+Let's assume that you have a secret stored in AWS Secrets Manager with the name `my_secret` and the following ARN: `arn:aws:secretsmanager:us-east-1:123456789012:secret:my_secret-AbCdEf`.
+
+In your Lambda function, set the following environment variables:
+
+```bash
+SAFE_INIT_RESOLVE_SECRETS=true
+MY_SECRET_SECRET_ARN=arn:aws:secretsmanager:us-east-1:123456789012:secret:my_secret-AbCdEf
+```
+
+When your Lambda function starts, Safe Init will automatically resolve the secret stored in AWS Secrets Manager and save it in an environment variable named `MY_SECRET`.
+
+**Advanced usage: JSON secrets**
+
+If your secret is a JSON object, you can specify the key to extract from it by appending it to the ARN with a `__` separator. For example, if your secret is a JSON object like this:
+
+```json
+{
+  "username": "admin",
+  "password": "s3cr3t"
+}
+```
+
+You can specify the key to extract like this:
+
+```bash
+USERNAME_SECRET_ARN=arn:aws:secretsmanager:us-east-1:123456789012:secret:my_secret-AbCdEf__username
+PASSWORD_SECRET_ARN=arn:aws:secretsmanager:us-east-1:123456789012:secret:my_secret-AbCdEf__password
+```
+
+In this case, Safe Init will resolve the secret and save the extracted values in the `USERNAME` and `PASSWORD` environment variables.
+
 ## Customization and Flexibility
 
 Safe Init is designed to be flexible and customizable, allowing you to tailor its behavior to fit your specific needs.
