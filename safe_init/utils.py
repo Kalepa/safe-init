@@ -109,9 +109,11 @@ def env(new_vars: Mapping[str, str | None]) -> Iterator:
     remove_after = frozenset(k for k in to_update if k not in environ)
 
     try:
-        environ.update(to_update)
-        [environ.pop(k, None) for k in to_remove]
+        for k, v in to_update.items():
+            os.environ[k] = v
+        [os.environ.pop(k, None) for k in to_remove]
         yield
     finally:
-        environ.update(update_after)
-        [environ.pop(k) for k in remove_after]
+        for k, v in update_after.items():
+            os.environ[k] = v
+        [os.environ.pop(k) for k in remove_after]

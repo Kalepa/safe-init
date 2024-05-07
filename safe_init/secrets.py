@@ -157,6 +157,7 @@ def get_secret_from_secrets_manager(secret_arn: str) -> str | None:
         if e.response["Error"]["Code"] == "ResourceNotFoundException":
             log_warning("Secret not found in Secrets Manager", secret_arn=secret_arn)
             return None
+        raise
 
     secret_value = secret["SecretString"]
     log_debug("Secret retrieved from Secrets Manager", secret_arn=secret_arn, version_id=secret["VersionId"])
