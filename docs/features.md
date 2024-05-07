@@ -77,6 +77,7 @@ Receive proactive notifications before your Lambda function times out. This feat
 Safe Init integrates with AWS Secrets Manager, allowing you to securely store and retrieve sensitive information like API keys, database credentials, and other secrets. This feature ensures that your secrets are managed securely and are easily accessible within your Lambda functions.
 
 **Configuration Options:**
+
 - `SAFE_INIT_RESOLVE_SECRETS`: Set to `true` to resolve AWS Secrets Manager secrets in environment variables. Safe Init will automatically resolve secrets in environment variables with names ending with a configured suffix and save them in environment variables with the original name minus the suffix.
 - `SAFE_INIT_SECRET_ARN_SUFFIX`: The suffix to use for resolving AWS Secrets Manager secrets in environment variables. Defaults to `_SECRET_ARN`. Use this to specify the suffix that marks environment variables as containing secret ARNs.
 - `SAFE_INIT_CACHE_SECRETS`: Set to `true` to cache resolved secrets in Redis. Safe Init will cache resolved secrets in Redis to reduce the number of calls to AWS Secrets Manager.
