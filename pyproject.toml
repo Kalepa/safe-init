@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "safe-init"
-version = "1.0.2"
+version = "1.1.0"
 description = "Safe Init is a Python library that enhances AWS Lambda functions with advanced error handling, logging, monitoring, and resilience features, providing comprehensive observability and reliability for serverless applications."
 license = "MIT"
 authors = ["Maciej Wilczyński <maciej@lupine.software>"]

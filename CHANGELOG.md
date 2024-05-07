@@ -2,6 +2,10 @@
 
 ---
 
+## v1.1.0 (2024-05-07)
+### New features
+- AWS Secrets integration: Safe Init can now automatically fetch secrets from AWS Secrets Manager and inject them into your Lambda function's environment variables.
+
 ## v1.0.2 (2024-04-12)
 ### Improvements
 - Timeout notifications now include additional tags and attachments in Sentry events.
