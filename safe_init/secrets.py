@@ -59,6 +59,8 @@ def resolve_secrets() -> Mapping[str, str | None]:
                 raise
             log_warning("Failed to resolve secret", secret_arn=secret_arn, exc_info=e)
 
+    log_debug("Resolved secrets", secrets=secrets.keys())
+
     return secrets
 
 
