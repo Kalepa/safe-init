@@ -2,9 +2,12 @@
 
 ---
 
-## v1.1.1 (2024-05-07)
+## v1.1.2 (2024-05-07)
 ### Bug fixes
 - Fixed a bug where resolved AWS Secrets Manager secrets were being accessible during the initialization, but not during the execution of the Lambda function.
+
+## v1.1.1 (2024-05-07)
+No significant changes. 
 
 ## v1.1.0 (2024-05-07)
 ### New features
