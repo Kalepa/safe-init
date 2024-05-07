@@ -197,8 +197,8 @@ class TestSecretResolution(unittest.TestCase):
     def test_resolve_json_secrets_success(self, mock_get_secret_from_secrets_manager, mock_get_secret_from_cache):
         with env(
             {
-                "SECRET1_SECRET_ARN": "arn:aws:secretsmanager:us-east-1:123456789012:secret:secret1__key1",
-                "SECRET2_SECRET_ARN": "arn:aws:secretsmanager:us-east-1:123456789012:secret:secret2__key2",
+                "SECRET1_SECRET_ARN": "arn:aws:secretsmanager:us-east-1:123456789012:secret:secret1~key1",
+                "SECRET2_SECRET_ARN": "arn:aws:secretsmanager:us-east-1:123456789012:secret:secret2~key2",
             }
         ):
             mock_get_secret_from_cache.side_effect = [None, json.dumps({"key2": "value2"})]

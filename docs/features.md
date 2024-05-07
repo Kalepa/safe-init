@@ -100,7 +100,7 @@ When your Lambda function starts, Safe Init will automatically resolve the secre
 
 **Advanced usage: JSON secrets**
 
-If your secret is a JSON object, you can specify the key to extract from it by appending it to the ARN with a `__` separator. For example, if your secret is a JSON object like this:
+If your secret is a JSON object, you can specify the key to extract from it by appending it to the ARN with a `~` separator. For example, if your secret is a JSON object like this:
 
 ```json
 {
@@ -112,8 +112,8 @@ If your secret is a JSON object, you can specify the key to extract from it by a
 You can specify the key to extract like this:
 
 ```bash
-USERNAME_SECRET_ARN=arn:aws:secretsmanager:us-east-1:123456789012:secret:my_secret-AbCdEf__username
-PASSWORD_SECRET_ARN=arn:aws:secretsmanager:us-east-1:123456789012:secret:my_secret-AbCdEf__password
+USERNAME_SECRET_ARN=arn:aws:secretsmanager:us-east-1:123456789012:secret:my_secret-AbCdEf~username
+PASSWORD_SECRET_ARN=arn:aws:secretsmanager:us-east-1:123456789012:secret:my_secret-AbCdEf~password
 ```
 
 In this case, Safe Init will resolve the secret and save the extracted values in the `USERNAME` and `PASSWORD` environment variables.

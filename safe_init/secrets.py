@@ -15,6 +15,7 @@ from safe_init.safe_logging import log_debug, log_warning
 SECRET_SUFFIX = os.getenv("SAFE_INIT_SECRET_ARN_SUFFIX", "_SECRET_ARN")
 CACHE_TTL = int(os.getenv("SAFE_INIT_SECRET_CACHE_TTL", "1800"))  # default 30 minutes
 CACHE_PREFIX = os.getenv("SAFE_INIT_SECRET_CACHE_PREFIX", "safe-init-secret::")
+JSON_SECRET_SEPARATOR = "~"  # noqa: S105
 
 
 def context_has_secrets_to_resolve() -> bool:
@@ -42,9 +43,9 @@ def resolve_secrets() -> Mapping[str, str | None]:
     for secret_name, raw_secret_arn in secret_arns.items():
         try:
             secret_arn = raw_secret_arn
-            if is_json_secret := "__" in raw_secret_arn:
-                secret_json_key = raw_secret_arn.split("__", 1)[1]
-                secret_arn = raw_secret_arn.split("__")[0]
+            if is_json_secret := JSON_SECRET_SEPARATOR in raw_secret_arn:
+                secret_json_key = raw_secret_arn.split(JSON_SECRET_SEPARATOR, 1)[1]
+                secret_arn = raw_secret_arn.split(JSON_SECRET_SEPARATOR, 1)[0]
 
             if not (secret_value := get_secret_from_cache(secret_arn)):
                 secret_value = get_secret_from_secrets_manager(secret_arn)
