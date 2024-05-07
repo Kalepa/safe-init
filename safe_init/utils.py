@@ -1,4 +1,6 @@
+import contextlib
 import os
+from collections.abc import Iterator, Mapping
 from typing import Any
 
 from safe_init.tracer import FunctionCall, FunctionCallSummary
@@ -94,3 +96,22 @@ def format_traces(traces: list[FunctionCallSummary], limit: int) -> str:
         f" {home_mark(fnc.file_name)}"
         for idx, fnc in enumerate(traces[:limit])
     )
+
+
+@contextlib.contextmanager
+def env(new_vars: Mapping[str, str | None]) -> Iterator:
+    environ = os.environ
+    to_update = {k: v for k, v in new_vars.items() if v is not None}
+    to_remove = [k for k, v in new_vars.items() if v is None]
+
+    stomped = (set(to_update.keys()) | set(to_remove)) & set(environ.keys())
+    update_after = {k: environ[k] for k in stomped}
+    remove_after = frozenset(k for k in to_update if k not in environ)
+
+    try:
+        environ.update(to_update)
+        [environ.pop(k, None) for k in to_remove]
+        yield
+    finally:
+        environ.update(update_after)
+        [environ.pop(k) for k in remove_after]
