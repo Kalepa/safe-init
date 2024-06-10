@@ -20,9 +20,9 @@ from safe_init.safe_logging import log_error, log_exception, log_warning
 from safe_init.sentry import sentry_capture
 from safe_init.slack import slack_notify
 from safe_init.timeout import TimeoutThread
-from safe_init.utils import is_lambda_context, is_lambda_handler
+from safe_init.utils import bool_env, is_lambda_context, is_lambda_handler
 
-if os.getenv("SAFE_INIT_NO_DATADOG_WRAPPER") is None:
+if not bool_env("SAFE_INIT_NO_DATADOG_WRAPPER"):
     try:
         from datadog_lambda.wrapper import datadog_lambda_wrapper
     except Exception:
@@ -105,10 +105,10 @@ class _SafeWrapper(_BaseWrapper):
 
             func = self.func
 
-            if os.getenv("SAFE_INIT_AUTO_TRACE_LAMBDAS", "false").lower() == "true" and is_lambda_handler(args):
+            if bool_env("SAFE_INIT_AUTO_TRACE_LAMBDAS") and is_lambda_handler(args):
                 func = tracer.traced(func)
 
-            if os.getenv("SAFE_INIT_NO_DATADOG_WRAPPER") is None and is_lambda_handler(args):
+            if not bool_env("SAFE_INIT_NO_DATADOG_WRAPPER") and is_lambda_handler(args):
                 func = datadog_lambda_wrapper(func)
 
             return func(*args, **kwargs)
@@ -136,7 +136,7 @@ class _SafeWrapper(_BaseWrapper):
 
     def start_timeout_thread(self, args: tuple[Any, ...], kwargs: dict[str, Any]) -> None:
         start_time = time.time() * 1000.0
-        if not is_lambda_handler(args) or os.getenv("SAFE_INIT_IGNORE_TIMEOUTS"):
+        if not is_lambda_handler(args) or bool_env("SAFE_INIT_IGNORE_TIMEOUTS"):
             return
 
         # If the wrapped function is a Lambda handler, we need to wrap it with a timeout handler
