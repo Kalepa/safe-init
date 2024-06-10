@@ -2,6 +2,10 @@
 
 ---
 
+## v1.1.3 (2024-06-10)
+### Bug fixes
+- Fixed a bug where setting environment variables to a false-like value (e.g. `0`, `false`, `off`, `no`) would not work as expected.
+
 ## v1.1.2 (2024-05-07)
 ### Bug fixes
 - Fixed a bug where resolved AWS Secrets Manager secrets were being accessible during the initialization, but not during the execution of the Lambda function.
