@@ -21,7 +21,7 @@ from safe_init.safe_logging import log_exception, log_warning
 from safe_init.secrets import context_has_secrets_to_resolve, resolve_secrets
 from safe_init.sentry import sentry_capture
 from safe_init.slack import slack_notify
-from safe_init.utils import env, get_sentry_sdk
+from safe_init.utils import bool_env, env, get_sentry_sdk
 
 
 def env_wrapped(func: Callable, env_vars: Mapping[str, str | None]) -> Callable:
@@ -30,7 +30,7 @@ def env_wrapped(func: Callable, env_vars: Mapping[str, str | None]) -> Callable:
 
     Args:
         func (Callable): The function to wrap.
-        env_vars (Mapping[str, str]): The environment variables to wrap the function with.
+        env_vars (Mapping[str, str | None]): The environment variables to wrap the function with.
 
     Returns:
         The wrapped function.
@@ -63,7 +63,7 @@ def _init_handler() -> Callable:
             raise SafeInitError(msg)  # noqa: TRY301
 
         secrets_env: Mapping[str, str | None] = {}
-        if os.getenv("SAFE_INIT_RESOLVE_SECRETS", "false").lower() == "true" and context_has_secrets_to_resolve():
+        if bool_env("SAFE_INIT_RESOLVE_SECRETS") and context_has_secrets_to_resolve():
             secrets_env = resolve_secrets()
 
         with env(secrets_env):
@@ -74,7 +74,7 @@ def _init_handler() -> Callable:
 
         exec_result = safe_wrapper(env_wrapped(getattr(handler_module, handler_name), secrets_env))
 
-        if not os.getenv("SAFE_INIT_NO_DETECT_UNINITIALIZED_SENTRY") and not get_sentry_sdk().Hub.current.client:
+        if not bool_env("SAFE_INIT_NO_DETECT_UNINITIALIZED_SENTRY") and not get_sentry_sdk().Hub.current.client:
             msg = "Detected missing Sentry initialization"
             slack_notify(
                 msg,
@@ -122,7 +122,7 @@ def _pre_import_hook(target_handler: str) -> None:
     Args:
         target_handler (str): The target handler function to be imported.
     """
-    if os.getenv("SAFE_INIT_NO_DETECT_INIT_ISSUES"):
+    if bool_env("SAFE_INIT_NO_DETECT_INIT_ISSUES"):
         return
     execution_hash = _get_execution_hash()
     if os.path.exists(f"/tmp/{__name__}__{execution_hash}__imported__"):
@@ -149,7 +149,7 @@ def _pre_import_hook(target_handler: str) -> None:
         execution_hash=execution_hash,
         env=dict(sorted(dict(os.environ).items())),
     )
-    if os.getenv("SAFE_INIT_NOTIFY_SLACK_ON_INIT_ISSUES"):
+    if bool_env("SAFE_INIT_NOTIFY_SLACK_ON_INIT_ISSUES"):
         msg = "Import hook for the Lambda function executed more than once"
         slack_notify(
             msg,
@@ -166,7 +166,7 @@ def _post_import_hook(target_handler: str) -> None:  # noqa: ARG001
     Args:
         target_handler (str): The target handler function to be imported.
     """
-    if os.getenv("SAFE_INIT_NO_DETECT_INIT_ISSUES"):
+    if bool_env("SAFE_INIT_NO_DETECT_INIT_ISSUES"):
         return
     execution_hash = _get_execution_hash()
     if not os.path.exists(f"/tmp/{__name__}__{execution_hash}__imported__"):

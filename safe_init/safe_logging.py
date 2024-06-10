@@ -6,6 +6,8 @@ import os
 import sys
 from typing import TYPE_CHECKING, Any
 
+from safe_init.utils import bool_env
+
 if TYPE_CHECKING:
     from structlog.stdlib import BoundLogger
 
@@ -56,7 +58,7 @@ def _get_structlog_logger() -> "BoundLogger":
         structlog.configure(
             cache_logger_on_first_use=True,
             wrapper_class=structlog.make_filtering_bound_logger(
-                logging.INFO if not os.getenv("SAFE_INIT_DEBUG") else logging.DEBUG,
+                logging.INFO if not bool_env("SAFE_INIT_DEBUG") else logging.DEBUG,
             ),
             processors=processors,  # type: ignore[arg-type]
         )
@@ -92,7 +94,7 @@ def log_debug(*args: Any, **kwargs: Any) -> None:  # noqa: ANN401
     """
     Logs a debug message with the "Safe Init" prefix.
     """
-    if not os.getenv("SAFE_INIT_DEBUG"):
+    if not bool_env("SAFE_INIT_DEBUG"):
         return
     get_logger().info(*_add_prefix(args), **kwargs)
 

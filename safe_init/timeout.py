@@ -19,7 +19,12 @@ from safe_init.safe_logging import (
 )
 from safe_init.sentry import sentry_capture
 from safe_init.slack import slack_notify
-from safe_init.utils import aggregate_traced_fn_calls, format_traces, is_lambda_handler
+from safe_init.utils import (
+    aggregate_traced_fn_calls,
+    bool_env,
+    format_traces,
+    is_lambda_handler,
+)
 
 
 # We don't want to fail if the ddtrace patcher is not available, so we just
@@ -28,7 +33,7 @@ def _dummy_patch(*args, **kwargs) -> None:  # type: ignore[no-untyped-def] # noq
     log_warning("ddtrace `patch` is not available, doing nothing")
 
 
-if os.getenv("SAFE_INIT_NO_DATADOG_WRAPPER") is not None:
+if bool_env("SAFE_INIT_NO_DATADOG_WRAPPER"):
     patch = _dummy_patch
 else:
     try:
@@ -151,7 +156,7 @@ class TimeoutThread(threading.Thread):
             **additional_log_data,
         )
 
-        if not os.getenv("SAFE_INIT_NO_SLACK_TIMEOUT_NOTIFICATIONS"):
+        if not bool_env("SAFE_INIT_NO_SLACK_TIMEOUT_NOTIFICATIONS"):
             slack_notify(
                 str(exc),
                 exc,

@@ -117,3 +117,16 @@ def env(new_vars: Mapping[str, str | None]) -> Iterator:
         for k, v in update_after.items():
             os.environ[k] = v
         [os.environ.pop(k) for k in remove_after]
+
+
+def bool_env(var: str) -> bool:
+    """
+    Returns the boolean value of the environment variable.
+
+    Args:
+        var: The name of the environment variable.
+
+    Returns:
+        The boolean value of the environment variable.
+    """
+    return os.getenv(var, "").strip().lower() in ("1", "true", "yes", "on", "y")

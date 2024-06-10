@@ -7,6 +7,8 @@ import boto3
 import redis
 from botocore.exceptions import ClientError
 
+from safe_init.utils import bool_env
+
 if TYPE_CHECKING:
     from boto3_type_annotations.secretsmanager import Client
 
@@ -56,7 +58,7 @@ def resolve_secrets() -> Mapping[str, str | None]:
                 secret_json = json.loads(secret_value)
                 secrets[secret_name] = secret_json[secret_json_key]
         except Exception as e:
-            if os.getenv("SAFE_INIT_FAIL_ON_SECRET_RESOLUTION_ERROR", "false").lower() == "true":
+            if bool_env("SAFE_INIT_FAIL_ON_SECRET_RESOLUTION_ERROR"):
                 raise
             log_warning("Failed to resolve secret", secret_arn=secret_arn, exc_info=e)
 
@@ -91,7 +93,7 @@ def is_secret_cache_enabled() -> bool:
         True if the secret cache is enabled, False otherwise.
     """
     return bool(
-        os.getenv("SAFE_INIT_CACHE_SECRETS", "false").lower() == "true"
+        bool_env("SAFE_INIT_CACHE_SECRETS")
         and os.getenv("SAFE_INIT_SECRET_CACHE_REDIS_HOST")
         and os.getenv("SAFE_INIT_SECRET_CACHE_REDIS_PORT"),
     )

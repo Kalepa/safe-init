@@ -2,7 +2,7 @@ import os
 
 import pytest
 
-from safe_init.utils import env
+from safe_init.utils import bool_env, env
 
 
 def test_env_updates_environment_variables():
@@ -43,3 +43,41 @@ def test_env_with_non_string_key_raises_error():
     with pytest.raises(TypeError):
         with env({1: "NEW_VALUE"}):
             pass
+
+
+@pytest.mark.parametrize(
+    "env_var, expected",
+    [
+        ("1", True),
+        ("true", True),
+        ("yes", True),
+        ("on", True),
+        ("y", True),
+        ("0", False),
+        ("false", False),
+        ("no", False),
+        ("off", False),
+        ("n", False),
+        ("", False),
+        ("random", False),
+        ("True", True),
+        ("Yes", True),
+        ("On", True),
+        ("Y", True),
+        (" 1 ", True),
+        (" true ", True),
+        (" yes ", True),
+        (" on ", True),
+        (" y ", True),
+        (" 0 ", False),
+        (" false ", False),
+        (" no ", False),
+        (" off ", False),
+        (" n ", False),
+        (" ", False),
+        ("onn", False),
+    ],
+)
+def test_bool_env(monkeypatch, env_var, expected):
+    monkeypatch.setenv("TEST_VAR", env_var)
+    assert bool_env("TEST_VAR") == expected
