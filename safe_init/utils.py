@@ -129,4 +129,4 @@ def bool_env(var: str) -> bool:
     Returns:
         The boolean value of the environment variable.
     """
-    return os.getenv(var, "").lower() in ("1", "true", "yes", "on", "y")
+    return os.getenv(var, "").strip().lower() in ("1", "true", "yes", "on", "y")
