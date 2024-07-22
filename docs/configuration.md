@@ -5,7 +5,7 @@ Safe Init provides a flexible and extensive configuration system primarily throu
 ## Configuration Options Overview
 
 | Environment Variable                        | Description                                                                                   | Default Value                           |
-|---------------------------------------------|-----------------------------------------------------------------------------------------------|-----------------------------------------|
+| ------------------------------------------- | --------------------------------------------------------------------------------------------- | --------------------------------------- |
 | `SAFE_INIT_HANDLER`                         | The name of your original Lambda handler function.                                            | None (required)                         |
 | `SAFE_INIT_ENV`                             | The environment name where the Lambda function is running (e.g., `prod`, `dev`).              | `unknown`                               |
 | `SAFE_INIT_DLQ`                             | The URL of the dead-letter queue to use for failed events.                                    | None                                    |
@@ -20,7 +20,8 @@ Safe Init provides a flexible and extensive configuration system primarily throu
 | `SAFE_INIT_AUTO_TRACE_LAMBDAS`              | Automatically trace all function calls in Lambda handlers.                                    | False                                   |
 | `SAFE_INIT_LOGGING_USE_CONSOLE_RENDERER`    | Use the console renderer for logs.                                                            | False                                   |
 | `SAFE_INIT_RESOLVE_SECRETS`                 | Resolve AWS Secrets Manager secrets in environment variables.                                 | False                                   |
-| `SAFE_INIT_SECRET_ARN_SUFFIX`               | The suffix to use for resolving AWS Secrets Manager secrets in environment variables.         | `_SECRET_ARN`                           |
+| `SAFE_INIT_SECRET_SUFFIX`                   | The suffix to use for resolving AWS Secrets Manager secrets in environment variables.         | `_SECRET_ARN`                           |
+| `SAFE_INIT_SECRET_ARN_PREFIX`               | The prefix to use for AWS Secrets Manager secret ARNs in environment variables.               | None                                    |
 | `SAFE_INIT_CACHE_SECRETS`                   | Cache resolved secrets in Redis.                                                              | False                                   |
 | `SAFE_INIT_SECRET_CACHE_REDIS_HOST`         | Hostname of the Redis server used for caching secrets. Required if secret caching is enabled. | None                                    |
 | `SAFE_INIT_SECRET_CACHE_REDIS_PORT`         | Port of the Redis server used for caching secrets. Required if secret caching is enabled.     | None                                    |
@@ -73,10 +74,13 @@ When set to `true`, this option instructs Safe Init to automatically trace all f
 By default, Safe Init uses a JSON renderer for logs to facilitate log ingestion and parsing in various log management systems. However, setting this variable to `true` switches the logging output to a more human-readable console format. This can be particularly useful during local development and testing, where readability of logs takes precedence over machine parsing.
 
 ### `SAFE_INIT_RESOLVE_SECRETS`
-When set to `true`, Safe Init will resolve AWS Secrets Manager secrets in environment variables. This feature allows you to securely store and retrieve sensitive information like API keys, database credentials, and other secrets within your Lambda functions. Secrets are resolved by looking for environment variables with names ending in a specified suffix (see `SAFE_INIT_SECRET_ARN_SUFFIX`) and creating new ones with the actual secret values.
+When set to `true`, Safe Init will resolve AWS Secrets Manager secrets in environment variables. This feature allows you to securely store and retrieve sensitive information like API keys, database credentials, and other secrets within your Lambda functions. Secrets are resolved by looking for environment variables with names ending in a specified suffix (see `SAFE_INIT_SECRET_SUFFIX`) and creating new ones with the actual secret values.
 
-### `SAFE_INIT_SECRET_ARN_SUFFIX`
-This variable specifies the suffix used to identify environment variables containing AWS Secrets Manager secret ARNs. By default, Safe Init looks for environment variables ending with `_SECRET_ARN` to resolve secrets. You can customize this suffix to match your naming convention for secret ARNs.
+### `SAFE_INIT_SECRET_SUFFIX`
+This variable specifies the suffix used to identify environment variables containing AWS Secrets Manager secret ARNs. By default, Safe Init looks for environment variables ending with `_SECRET_ARN` to resolve secrets. You can customize this suffix to match your naming convention for secret ARNs. For compatibility purposes, `SAVE_INIT_SECRET_ARN_SUFFIX` is also supported as an alias for this variable.
+
+### `SAFE_INIT_SECRET_ARN_PREFIX`
+If specified, the value of this variable is appended to the beginning of AWS Secrets Manager secret ARNs found in environment variables. This can be useful for reducing redundancy in your environment variables by specifying a common prefix for all secret ARNs. For example, if your secret ARNs typically start with `arn:aws:secretsmanager:`, you can set `SAFE_INIT_SECRET_ARN_PREFIX` to `arn:aws:secretsmanager:` to avoid repeating this prefix in every secret ARN.
 
 ### `SAFE_INIT_CACHE_SECRETS`
 Setting this variable to `true` enables Safe Init to cache resolved secrets in Redis. Caching secrets can help reduce the number of calls to AWS Secrets Manager, improving performance and reducing costs. If you enable secret caching, you must provide the necessary Redis connection details (host, port, database, and password) using the corresponding environment variables.

@@ -7,7 +7,7 @@
 
 Safe Init is a Python library that provides a comprehensive set of tools for initializing AWS Lambda functions safely and handling errors and exceptions gracefully. It is designed to make your Lambda functions more robust, easier to debug, and less prone to unexpected failures. With Safe Init, you can focus on writing your core Lambda function logic while the library takes care of error handling, logging, notifications, and more.
 
-[Read the Docs](https://safe-init.readthedocs.io/en/latest/) | [GitHub Repository](https://github.com/Kalepa/safe-init) | [PyPI Package](https://pypi.org/project/safe-init/) 
+[Read the Docs](https://safe-init.readthedocs.io/en/latest/) | [GitHub Repository](https://github.com/Kalepa/safe-init) | [PyPI Package](https://pypi.org/project/safe-init/)
 
 ## Features
 
@@ -84,7 +84,8 @@ Safe Init provides a wide range of configuration options to customize its behavi
 - `SAFE_INIT_AUTO_TRACE_LAMBDAS` (optional): Set to `'true'` to automatically trace all function calls in Lambda handlers. **Warning:** this can significantly increase memory usage and execution time. Use with caution!
 - `SAFE_INIT_LOGGING_USE_CONSOLE_RENDERER` (optional): Set to `'true'` to use the console renderer for logs. For those times when you want your logs to look extra fancy in the console.
 - `SAFE_INIT_RESOLVE_SECRETS` (optional): Set to `true` to resolve AWS Secrets Manager secrets in environment variables. Safe Init will automatically resolve secrets in environment variables with names ending with a configured suffix and save them in environment variables with the original name minus the suffix.
-- `SAFE_INIT_SECRET_ARN_SUFFIX` (optional): The suffix to use for resolving AWS Secrets Manager secrets in environment variables. Defaults to `_SECRET_ARN`. Use this to specify the suffix that marks environment variables as containing secret ARNs.
+- `SAFE_INIT_SECRET_SUFFIX` (optional): The suffix to use for resolving AWS Secrets Manager secrets in environment variables. Defaults to `_SECRET_ARN`. Use this to specify the suffix that marks environment variables as containing secret ARNs.
+- `SAFE_INIT_SECRET_ARN_PREFIX` (optional): The prefix to use for AWS Secrets Manager secret ARNs in environment variables. Use this to save some space in your environment variables by specifying a prefix with which all secret ARNs start.
 - `SAFE_INIT_CACHE_SECRETS` (optional): Set to `true` to cache resolved secrets in Redis. Safe Init will cache resolved secrets in Redis to reduce the number of calls to AWS Secrets Manager.
 - `SAFE_INIT_SECRET_CACHE_REDIS_HOST`, `SAFE_INIT_SECRET_CACHE_REDIS_PORT`, `SAFE_INIT_SECRET_CACHE_REDIS_DB`, `SAFE_INIT_SECRET_CACHE_REDIS_USERNAME`, `SAFE_INIT_SECRET_CACHE_REDIS_PASSWORD` (host&port required if secret caching enabled): Redis connection details for caching resolved secrets. Use these environment variables to specify the Redis host, port, database, and password for caching resolved secrets.
 - `SAFE_INIT_SECRET_CACHE_TTL` (optional): TTL for cached secrets in seconds. Defaults to 1800 seconds (30 minutes). Use this to specify how long resolved secrets should be cached in Redis.

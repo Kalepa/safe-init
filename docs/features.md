@@ -79,7 +79,8 @@ Safe Init integrates with AWS Secrets Manager, allowing you to securely store an
 **Configuration Options:**
 
 - `SAFE_INIT_RESOLVE_SECRETS`: Set to `true` to resolve AWS Secrets Manager secrets in environment variables. Safe Init will automatically resolve secrets in environment variables with names ending with a configured suffix and save them in environment variables with the original name minus the suffix.
-- `SAFE_INIT_SECRET_ARN_SUFFIX`: The suffix to use for resolving AWS Secrets Manager secrets in environment variables. Defaults to `_SECRET_ARN`. Use this to specify the suffix that marks environment variables as containing secret ARNs.
+- `SAFE_INIT_SECRET_SUFFIX`: The suffix to use for resolving AWS Secrets Manager secrets in environment variables. Defaults to `_SECRET_ARN`. Use this to specify the suffix that marks environment variables as containing secret ARNs.
+- `SAFE_INIT_SECRET_ARN_PREFIX`: The prefix to use for AWS Secrets Manager secret ARNs in environment variables. Use this to save some space in your environment variables by specifying a prefix with which all secret ARNs start.
 - `SAFE_INIT_CACHE_SECRETS`: Set to `true` to cache resolved secrets in Redis. Safe Init will cache resolved secrets in Redis to reduce the number of calls to AWS Secrets Manager.
 - `SAFE_INIT_SECRET_CACHE_REDIS_HOST`, `SAFE_INIT_SECRET_CACHE_REDIS_PORT`, `SAFE_INIT_SECRET_CACHE_REDIS_DB`, `SAFE_INIT_SECRET_CACHE_REDIS_USERNAME`, `SAFE_INIT_SECRET_CACHE_REDIS_PASSWORD` (host&port required if secret caching enabled): Redis connection details for caching resolved secrets. Use these environment variables to specify the Redis host, port, database, and password for caching resolved secrets.
 - `SAFE_INIT_SECRET_CACHE_TTL`: TTL for cached secrets in seconds. Defaults to 1800 seconds (30 minutes). Use this to specify how long resolved secrets should be cached in Redis.

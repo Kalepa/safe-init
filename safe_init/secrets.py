@@ -14,7 +14,7 @@ if TYPE_CHECKING:
 
 from safe_init.safe_logging import log_debug, log_warning
 
-SECRET_SUFFIX = os.getenv("SAFE_INIT_SECRET_ARN_SUFFIX", "_SECRET_ARN")
+SECRET_SUFFIX = os.getenv("SAFE_INIT_SECRET_SUFFIX", os.getenv("SAFE_INIT_SECRET_ARN_SUFFIX", "_SECRET_ARN"))
 CACHE_TTL = int(os.getenv("SAFE_INIT_SECRET_CACHE_TTL", "1800"))  # default 30 minutes
 CACHE_PREFIX = os.getenv("SAFE_INIT_SECRET_CACHE_PREFIX", "safe-init-secret::")
 JSON_SECRET_SEPARATOR = "~"  # noqa: S105
@@ -34,12 +34,15 @@ def resolve_secrets() -> Mapping[str, str | None]:
     Returns:
         The resolved secrets as a dictionary.
     """
+    common_secret_arn_prefix = os.getenv("SAFE_INIT_SECRET_ARN_PREFIX")
     secret_arns = {}
     for env_var, secret_arn in os.environ.items():
         if not env_var.endswith(SECRET_SUFFIX):
             continue
         secret_name = env_var[: -len(SECRET_SUFFIX)]
-        secret_arns[secret_name] = secret_arn
+        secret_arns[secret_name] = (
+            secret_arn if not common_secret_arn_prefix else f"{common_secret_arn_prefix}{secret_arn}"
+        )
 
     secrets = {}
     for secret_name, raw_secret_arn in secret_arns.items():
