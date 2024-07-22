@@ -2,6 +2,13 @@
 
 ---
 
+## v1.1.4 (2024-07-22)
+### New features
+- Added a new option that allows specifying a common ARN prefix for all secrets using the `SAFE_INIT_SECRET_ARN_PREFIX` environment variable.
+
+### Bug fixes
+- Fixed a bug where a KeyError could be raised if an environment variable was no longer found after function import phase.
+
 ## v1.1.3 (2024-06-10)
 ### Bug fixes
 - Fixed a bug where setting environment variables to a false-like value (e.g. `0`, `false`, `off`, `no`) would not work as expected.
@@ -11,7 +18,7 @@
 - Fixed a bug where resolved AWS Secrets Manager secrets were being accessible during the initialization, but not during the execution of the Lambda function.
 
 ## v1.1.1 (2024-05-07)
-No significant changes. 
+No significant changes.
 
 ## v1.1.0 (2024-05-07)
 ### New features
