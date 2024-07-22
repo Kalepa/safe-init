@@ -18,7 +18,7 @@ from safe_init.secrets import (
 from safe_init.utils import env
 
 TEST_ENV_VARS = {
-    "SAFE_INIT_SECRET_ARN_SUFFIX": "_SECRET_ARN",
+    "SAFE_INIT_SECRET_SUFFIX": "_SECRET_ARN",
     "SAFE_INIT_SECRET_CACHE_TTL": "1800",
     "SAFE_INIT_SECRET_CACHE_PREFIX": "safe-init-secret::",
     "SAFE_INIT_FAIL_ON_SECRET_RESOLUTION_ERROR": "false",
@@ -207,6 +207,28 @@ class TestSecretResolution(unittest.TestCase):
             secrets = resolve_secrets()
 
             self.assertEqual({"SECRET1": "value1", "SECRET2": "value2"}, secrets)
+            mock_get_secret_from_cache.assert_any_call("arn:aws:secretsmanager:us-east-1:123456789012:secret:secret1")
+            mock_get_secret_from_cache.assert_any_call("arn:aws:secretsmanager:us-east-1:123456789012:secret:secret2")
+            mock_get_secret_from_secrets_manager.assert_called_once_with(
+                "arn:aws:secretsmanager:us-east-1:123456789012:secret:secret1"
+            )
+
+    @patch("safe_init.secrets.get_secret_from_cache")
+    @patch("safe_init.secrets.get_secret_from_secrets_manager")
+    def test_resolve_secrets_with_common_prefix(self, mock_get_secret_from_secrets_manager, mock_get_secret_from_cache):
+        with env(
+            {
+                "SAFE_INIT_SECRET_ARN_PREFIX": "arn:aws:secretsmanager:us-east-1:123456789012:",
+                "SECRET1_SECRET_ARN": "secret:secret1",
+                "SECRET2_SECRET_ARN": "secret:secret2",
+            }
+        ):
+            mock_get_secret_from_cache.side_effect = [None, "secret_value2"]
+            mock_get_secret_from_secrets_manager.return_value = "secret_value1"
+
+            secrets = resolve_secrets()
+
+            self.assertEqual({"SECRET1": "secret_value1", "SECRET2": "secret_value2"}, secrets)
             mock_get_secret_from_cache.assert_any_call("arn:aws:secretsmanager:us-east-1:123456789012:secret:secret1")
             mock_get_secret_from_cache.assert_any_call("arn:aws:secretsmanager:us-east-1:123456789012:secret:secret2")
             mock_get_secret_from_secrets_manager.assert_called_once_with(

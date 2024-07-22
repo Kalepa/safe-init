@@ -116,7 +116,7 @@ def env(new_vars: Mapping[str, str | None]) -> Iterator:
     finally:
         for k, v in update_after.items():
             os.environ[k] = v
-        [os.environ.pop(k) for k in remove_after]
+        [os.environ.pop(k, None) for k in remove_after]
 
 
 def bool_env(var: str) -> bool:
