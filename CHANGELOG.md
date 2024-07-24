@@ -2,6 +2,10 @@
 
 ---
 
+## v1.1.5 (2024-07-24)
+### Bug fixes
+- Fixed a bug where the value of an AWS Secrets Manager secret wasn't always returned as a string.
+
 ## v1.1.4 (2024-07-22)
 ### New features
 - Added a new option that allows specifying a common ARN prefix for all secrets using the `SAFE_INIT_SECRET_ARN_PREFIX` environment variable.
