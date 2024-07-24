@@ -56,10 +56,10 @@ def resolve_secrets() -> Mapping[str, str | None]:
                 secret_value = get_secret_from_secrets_manager(secret_arn)
             if secret_value:
                 if not is_json_secret:
-                    secrets[secret_name] = secret_value
+                    secrets[secret_name] = str(secret_value)
                     continue
                 secret_json = json.loads(secret_value)
-                secrets[secret_name] = secret_json[secret_json_key]
+                secrets[secret_name] = str(secret_json[secret_json_key])
         except Exception as e:
             if bool_env("SAFE_INIT_FAIL_ON_SECRET_RESOLUTION_ERROR"):
                 raise
