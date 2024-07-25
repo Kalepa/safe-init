@@ -80,6 +80,7 @@ Safe Init provides a wide range of configuration options to customize its behavi
 - `SAFE_INIT_TRACER_HOME_PATHS` (optional): A comma-separated list of paths to mark as "home" in function call tracing. Paths containing these strings will be marked with a ⚡ emoji in Slack notifications. Because home is where the heart is, and the ⚡ emoji is just cool!
 - `SAFE_INIT_IGNORE_TIMEOUTS` (optional): Set to `'true'` to disable timeout notifications. For those times when you just don't want to be bothered about timeouts.
 - `SAFE_INIT_NO_SLACK_TIMEOUT_NOTIFICATIONS` (optional): Set to `'true'` to disable Slack notifications for timeouts. Sometimes, you just need a break from all the notifications.
+- `SAFE_INIT_ALWAYS_NOTIFY_SLACK` (optional): Set to `'true'` to always send Slack notifications, even if the error is sent to Sentry. Because sometimes you just want to make sure everyone knows what's going on!
 - `SAFE_INIT_NO_DATADOG_WRAPPER` (optional): Set to `'true'` to disable Datadog integration. If you're not using Datadog, this is the option for you!
 - `SAFE_INIT_AUTO_TRACE_LAMBDAS` (optional): Set to `'true'` to automatically trace all function calls in Lambda handlers. **Warning:** this can significantly increase memory usage and execution time. Use with caution!
 - `SAFE_INIT_LOGGING_USE_CONSOLE_RENDERER` (optional): Set to `'true'` to use the console renderer for logs. For those times when you want your logs to look extra fancy in the console.
