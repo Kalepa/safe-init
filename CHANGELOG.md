@@ -2,6 +2,10 @@
 
 ---
 
+## v1.1.6 (2024-07-25)
+### Improvements
+- Added a new option (`SAFE_INIT_ALWAYS_NOTIFY_SLACK`) that enables Safe Init to notify Slack about failures even if a Sentry notification has been sent successfully.
+
 ## v1.1.5 (2024-07-24)
 ### Bug fixes
 - Fixed a bug where the value of an AWS Secrets Manager secret wasn't always returned as a string.
