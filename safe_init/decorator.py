@@ -119,7 +119,7 @@ class _SafeWrapper(_BaseWrapper):
             else:
                 msg = "Unhandled runtime exception detected"
             log_exception(msg, sentry_capture_result=sentry_result)
-            if not sentry_result:
+            if not sentry_result or bool_env("SAFE_INIT_ALWAYS_NOTIFY_SLACK"):
                 slack_notify(
                     msg,
                     e,

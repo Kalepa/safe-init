@@ -5,7 +5,7 @@ Safe Init provides a flexible and extensive configuration system primarily throu
 ## Configuration Options Overview
 
 | Environment Variable                        | Description                                                                                   | Default Value                           |
-| ------------------------------------------- | --------------------------------------------------------------------------------------------- | --------------------------------------- |
+|---------------------------------------------|-----------------------------------------------------------------------------------------------|-----------------------------------------|
 | `SAFE_INIT_HANDLER`                         | The name of your original Lambda handler function.                                            | None (required)                         |
 | `SAFE_INIT_ENV`                             | The environment name where the Lambda function is running (e.g., `prod`, `dev`).              | `unknown`                               |
 | `SAFE_INIT_DLQ`                             | The URL of the dead-letter queue to use for failed events.                                    | None                                    |
@@ -16,6 +16,7 @@ Safe Init provides a flexible and extensive configuration system primarily throu
 | `SAFE_INIT_TRACER_HOME_PATHS`               | Comma-separated list of paths to mark as "home" in function call tracing.                     | None                                    |
 | `SAFE_INIT_IGNORE_TIMEOUTS`                 | Disable timeout notifications.                                                                | False                                   |
 | `SAFE_INIT_NO_SLACK_TIMEOUT_NOTIFICATIONS`  | Disable Slack notifications for timeouts.                                                     | False                                   |
+| `SAFE_INIT_ALWAYS_NOTIFY_SLACK`             | Always send error notifications to Slack, even if successfully sent to Sentry.                | False                                   |
 | `SAFE_INIT_NO_DATADOG_WRAPPER`              | Disable automatic Datadog integration.                                                        | False                                   |
 | `SAFE_INIT_AUTO_TRACE_LAMBDAS`              | Automatically trace all function calls in Lambda handlers.                                    | False                                   |
 | `SAFE_INIT_LOGGING_USE_CONSOLE_RENDERER`    | Use the console renderer for logs.                                                            | False                                   |
@@ -63,6 +64,9 @@ Setting this to `true` disables the timeout notification feature. This can be us
 
 ### `SAFE_INIT_NO_SLACK_TIMEOUT_NOTIFICATIONS`
 When set to `true`, this prevents Safe Init from sending Slack notifications specifically for Lambda execution timeouts. This can be useful if you wish to limit the volume of Slack notifications or handle timeout alerts through another mechanism.
+
+### `SAFE_INIT_ALWAYS_NOTIFY_SLACK`
+By default, Safe Init sends error notifications to Slack only if it fails to send the error to Sentry. However, setting this variable to `true` forces Safe Init to always send error notifications to Slack, regardless of whether the error was successfully reported to Sentry.
 
 ### `SAFE_INIT_NO_DATADOG_WRAPPER`
 Setting this variable to `true` disables the automatic wrapping of your Lambda function with the Datadog Lambda wrapper. This is useful if you are not using Datadog for monitoring or if you wish to manually configure the Datadog integration. Disabling the automatic wrapper gives you full control over how and when your functions are instrumented with Datadog.
