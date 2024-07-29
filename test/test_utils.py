@@ -1,8 +1,9 @@
 import os
+from contextvars import ContextVar
 
 import pytest
 
-from safe_init.utils import bool_env, env
+from safe_init.utils import bool_env, env, get_contextvar_named
 
 
 def test_env_updates_environment_variables():
@@ -81,3 +82,18 @@ def test_env_with_non_string_key_raises_error():
 def test_bool_env(monkeypatch, env_var, expected):
     monkeypatch.setenv("TEST_VAR", env_var)
     assert bool_env("TEST_VAR") == expected
+
+
+def test_returns_value_if_contextvar_exists():
+    var = ContextVar("test_var", default="default_value")
+    var.set("test_value")
+    assert get_contextvar_named("test_var") == "test_value"
+
+
+def test_returns_none_if_contextvar_does_not_exist():
+    assert get_contextvar_named("non_existent_var") is None
+
+
+def test_returns_none_if_contextvar_has_no_value():
+    var = ContextVar("empty_test_var")
+    assert get_contextvar_named("empty_test_var") is None

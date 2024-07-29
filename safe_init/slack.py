@@ -5,7 +5,7 @@ This module provides a function for sending a Slack notification with error deta
 import os
 from typing import cast
 
-from safe_init.utils import is_lambda_context
+from safe_init.utils import get_contextvar_named, is_lambda_context
 
 
 def get_slack_webhook_url() -> str:
@@ -15,8 +15,9 @@ def get_slack_webhook_url() -> str:
     Returns:
         The Slack webhook URL.
     """
-    if "safe_init_slack_webhook_url" in globals():
-        return cast(str, globals()["safe_init_slack_webhook_url"])
+    ctx_slack_webhook_url = get_contextvar_named("safe_init_slack_webhook_url")
+    if ctx_slack_webhook_url:
+        return cast(str, ctx_slack_webhook_url)
     slack_webhook_url = os.environ.get("SAFE_INIT_SLACK_WEBHOOK_URL")
     if not slack_webhook_url:
         msg = "SLACK_WEBHOOK_URL environment variable nor global variable are not set"
@@ -114,6 +115,15 @@ def slack_notify(
     if not message_title:
         message_title = f"{'Application' if not _lambda_context else 'Lambda'} execution failed"
 
+    main_context_blocks = []
+    if main_context:
+        main_context_blocks.append(
+            {
+                "type": "context",
+                "elements": main_context,
+            },
+        )
+
     blocks = [
         {
             "type": "header",
@@ -141,10 +151,7 @@ def slack_notify(
                 "text": f":face_palm: {e}",
             },
         },
-        {
-            "type": "context",
-            "elements": main_context,
-        },
+        *main_context_blocks,
     ]
 
     if additional_context:
