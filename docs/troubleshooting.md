@@ -28,7 +28,7 @@ In this section, we address common issues you might encounter while using Safe I
 
 **Possible Causes and Solutions:**
 
-- **Slack Webhook URL:** Confirm that `SAFE_INIT_SLACK_WEBHOOK_URL` is correctly set to your Slack incoming webhook URL. If setting it programmatically via `safe_init.slack.safe_init_slack_webhook_url`, ensure this is done before Safe Init handles an error.
+- **Slack Webhook URL:** Confirm that `SAFE_INIT_SLACK_WEBHOOK_URL` is correctly set to your Slack incoming webhook URL. If setting it programmatically via the `safe_init_slack_webhook_url` ContextVar, ensure this is done before Safe Init handles an error.
 - **Network Issues:** If your Lambda function runs in a VPC without Internet access, it cannot reach Slack's servers. Ensure your VPC configuration allows for external HTTP/S requests.
 
 ### Datadog Metrics Not Available

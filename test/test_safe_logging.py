@@ -1,4 +1,6 @@
-from unittest.mock import patch
+from collections.abc import Callable
+from contextvars import ContextVar
+from unittest.mock import MagicMock, patch
 
 from safe_init.safe_logging import log_error, log_exception, log_warning
 
@@ -111,3 +113,24 @@ class TestSafeLogging:
         log_exception("", "arg2", "arg3")
         mock_get_logger.assert_called_once_with()
         mock_get_logger().exception.assert_called_once_with("Safe Init: ", "arg2", "arg3")
+
+    @patch("safe_init.safe_logging._get_structlog_logger")
+    def test_logger_uses_default_logger(self, mock_get_default_logger):
+        mocked_logger = MagicMock()
+        mock_get_default_logger.return_value = mocked_logger
+        from safe_init.safe_logging import get_logger
+
+        assert get_logger() == mocked_logger
+        mock_get_default_logger.assert_called_once_with()
+
+    @patch("safe_init.safe_logging._get_structlog_logger")
+    def test_logger_can_be_overriden(self, mock_get_default_logger):
+        mocked_logger = MagicMock()
+        mocked_logger_getter = MagicMock(return_value=mocked_logger)
+        safe_init_logger_getter: ContextVar[Callable] = ContextVar("safe_init_logger_getter")
+        safe_init_logger_getter.set(mocked_logger_getter)
+        from safe_init.safe_logging import get_logger
+
+        assert get_logger() == mocked_logger
+        mock_get_default_logger.assert_not_called()
+        mocked_logger_getter.assert_called_once_with()

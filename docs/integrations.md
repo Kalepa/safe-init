@@ -48,12 +48,13 @@ Safe Init can send real-time notifications to Slack, keeping your team informed 
 
 The default notification includes basic error information. You can customize this further by modifying the `slack_notify` function within Safe Init to include more details like stack traces, environment variables, or custom messages.
 
-- **Global Variable Override**: For dynamic webhook URLs, you can set the `safe_init_slack_webhook_url` global variable in your Lambda function to specify the webhook URL programmatically.
+- **Global Variable Override**: For dynamic webhook URLs, you can set the `safe_init_slack_webhook_url` contextvar in your Lambda function to specify the webhook URL programmatically.
 
 ```python
-import safe_init
+from contextvars import ContextVar
 
-safe_init.slack.safe_init_slack_webhook_url = 'https://hooks.slack.com/services/xxx/yyy/zzz'
+safe_init_webhook_url: ContextVar[str] = ContextVar("safe_init_slack_webhook_url")
+safe_init_webhook_url.set("https://hooks.slack.com/services/xxx/yyy/zzz") 
 ```
 
 - **Formatting Messages**: The Slack API allows richly formatted messages using blocks and attachments. Monkey patch the `slack_notify` function to include custom blocks that represent your error data more effectively.

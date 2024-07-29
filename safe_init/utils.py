@@ -1,6 +1,7 @@
 import contextlib
 import os
 from collections.abc import Iterator, Mapping
+from contextvars import Context, copy_context
 from typing import Any
 
 from safe_init.tracer import FunctionCall, FunctionCallSummary
@@ -130,3 +131,21 @@ def bool_env(var: str) -> bool:
         The boolean value of the environment variable.
     """
     return os.getenv(var, "").strip().lower() in ("1", "true", "yes", "on", "y")
+
+
+def get_contextvar_named(name: str) -> Any | None:  # noqa: ANN401
+    """
+    Returns the context variable with the given name, or None if it does not exist.
+
+    Args:
+        name: The name of the context variable.
+
+    Returns:
+        The context variable.
+    """
+    ctx: Context = copy_context()
+    try:
+        cvar, cval = next(c for c in ctx.items() if c[0].name == name)
+        return cval  # noqa: TRY300
+    except:  # noqa: E722
+        return None

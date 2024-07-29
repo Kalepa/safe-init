@@ -10,6 +10,8 @@ While Safe Init uses `structlog` for logging by default, it's flexible enough to
 
 ```python
 import structlog
+from contextvars import ContextVar
+from typing import Callable
 from structlog.stdlib import LoggerFactory
 
 # Configure structlog to use standard library's logging module
@@ -37,9 +39,9 @@ structlog.configure(
 def my_logger_getter():
     return structlog.get_logger('my_custom_logger')
 
-# Assign your custom logger to Safe Init
-import safe_init
-safe_init.safe_logging.safe_init_logger_getter = my_logger_getter
+# Assign your custom logger to Safe Init using ContextVars
+safe_init_logger_getter: ContextVar[Callable] = ContextVar("safe_init_logger_getter")
+safe_init_logger_getter.set(my_logger_getter)
 ```
 
 This example demonstrates how to set up a `structlog` logger with custom formatting and assign it to Safe Init, ensuring all internal logging respects your preferred configuration.
@@ -51,10 +53,10 @@ While the `SAFE_INIT_SLACK_WEBHOOK_URL` environment variable is the standard way
 ### Example: Setting Slack Webhook URL Programmatically
 
 ```python
-import safe_init
+from contextvars import ContextVar
 
-# Manually specify the Slack webhook URL
-safe_init.slack.safe_init_slack_webhook_url = 'https://hooks.slack.com/services/T00000000/B00000000/XXXXXXXXXXXXXXXXXXXXXXXX'
+safe_init_webhook_url: ContextVar[str] = ContextVar("safe_init_slack_webhook_url")
+safe_init_webhook_url.set("https://hooks.slack.com/services/xxx/yyy/zzz") 
 ```
 
 This approach is particularly useful in scenarios where environment variables might not be the best option for configuration management.

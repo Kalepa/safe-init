@@ -6,7 +6,7 @@ import os
 import sys
 from typing import TYPE_CHECKING, Any
 
-from safe_init.utils import bool_env
+from safe_init.utils import bool_env, get_contextvar_named
 
 if TYPE_CHECKING:
     from structlog.stdlib import BoundLogger
@@ -73,9 +73,10 @@ def get_logger() -> "BoundLogger":
     Returns:
         The logger instance.
     """
-    if globals().get("safe_init_logger_getter"):
-        return globals()["safe_init_logger_getter"]()
-    return _get_structlog_logger()
+    ctx_logger = get_contextvar_named("safe_init_logger_getter")
+    if not ctx_logger:
+        return _get_structlog_logger()
+    return ctx_logger()
 
 
 def _add_prefix(args: tuple[Any, ...]) -> tuple[Any, ...]:
