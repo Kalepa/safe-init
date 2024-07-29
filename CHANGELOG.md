@@ -2,6 +2,13 @@
 
 ---
 
+## v1.2.0 (2024-07-29)
+### BREAKING CHANGES    
+- Setting Slack webhook URLs and custom loggers using monkey patching wasn't working reliably and is no longer supported. Instead, use ContextVars to set your desired values and Safe Init will read them automatically.
+
+### Improvements
+- Fixed Slack notifications not being sent when Safe Init couldn't gather enough information to identify function execution context.
+
 ## v1.1.6 (2024-07-25)
 ### Improvements
 - Added a new option (`SAFE_INIT_ALWAYS_NOTIFY_SLACK`) that enables Safe Init to notify Slack about failures even if a Sentry notification has been sent successfully.
