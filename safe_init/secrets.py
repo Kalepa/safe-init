@@ -41,7 +41,9 @@ def resolve_secrets() -> Mapping[str, str | None]:
             continue
         secret_name = env_var[: -len(SECRET_SUFFIX)]
         secret_arns[secret_name] = (
-            secret_arn if not common_secret_arn_prefix else f"{common_secret_arn_prefix}{secret_arn}"
+            secret_arn
+            if not common_secret_arn_prefix or secret_arn.startswith(common_secret_arn_prefix)
+            else f"{common_secret_arn_prefix}{secret_arn}"
         )
 
     secrets = {}
