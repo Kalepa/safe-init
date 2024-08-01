@@ -234,3 +234,30 @@ class TestSecretResolution(unittest.TestCase):
             mock_get_secret_from_secrets_manager.assert_called_once_with(
                 "arn:aws:secretsmanager:us-east-1:123456789012:secret:secret1"
             )
+
+    @patch("safe_init.secrets.get_secret_from_cache")
+    @patch("safe_init.secrets.get_secret_from_secrets_manager")
+    def test_ignores_common_prefix_when_secrets_already_prefixed(
+        self, mock_get_secret_from_secrets_manager, mock_get_secret_from_cache
+    ):
+        with env(
+            {
+                "SAFE_INIT_SECRET_ARN_PREFIX": "arn:aws:secretsmanager:us-east-1:123456789012:",
+                "SECRET1_SECRET_ARN": "secret:secret1",
+                "SECRET2_SECRET_ARN": "arn:aws:secretsmanager:us-east-1:123456789012:secret:secret2",
+            }
+        ):
+            mock_get_secret_from_cache.return_value = None
+            mock_get_secret_from_secrets_manager.side_effect = ["secret_value1", "secret_value2"]
+
+            secrets = resolve_secrets()
+
+            self.assertEqual({"SECRET1": "secret_value1", "SECRET2": "secret_value2"}, secrets)
+            mock_get_secret_from_cache.assert_any_call("arn:aws:secretsmanager:us-east-1:123456789012:secret:secret1")
+            mock_get_secret_from_cache.assert_any_call("arn:aws:secretsmanager:us-east-1:123456789012:secret:secret2")
+            mock_get_secret_from_secrets_manager.assert_any_call(
+                "arn:aws:secretsmanager:us-east-1:123456789012:secret:secret1"
+            )
+            mock_get_secret_from_secrets_manager.assert_any_call(
+                "arn:aws:secretsmanager:us-east-1:123456789012:secret:secret2"
+            )
