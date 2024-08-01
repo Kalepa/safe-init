@@ -2,8 +2,12 @@
 
 ---
 
+## v1.2.1 (2024-08-01)
+### Improvements
+- Safe Init will no longer add the configured AWS Secrets Manager secret ARN prefix to the specified value if it already contains a prefix.
+
 ## v1.2.0 (2024-07-29)
-### BREAKING CHANGES    
+### BREAKING CHANGES
 - Setting Slack webhook URLs and custom loggers using monkey patching wasn't working reliably and is no longer supported. Instead, use ContextVars to set your desired values and Safe Init will read them automatically.
 
 ### Improvements

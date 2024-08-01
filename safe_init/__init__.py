@@ -1,6 +1,6 @@
 from typing import Any
 
-__VERSION__ = "1.2.0"
+__VERSION__ = "1.2.1"
 
 _wrapped_handler = None
 
