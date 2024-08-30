@@ -12,12 +12,22 @@ from safe_init.utils import bool_env
 if TYPE_CHECKING:
     from boto3_type_annotations.secretsmanager import Client
 
-from safe_init.safe_logging import log_debug, log_warning
+from safe_init.safe_logging import log_debug, log_error, log_warning
 
 SECRET_SUFFIX = os.getenv("SAFE_INIT_SECRET_SUFFIX", os.getenv("SAFE_INIT_SECRET_ARN_SUFFIX", "_SECRET_ARN"))
 CACHE_TTL = int(os.getenv("SAFE_INIT_SECRET_CACHE_TTL", "1800"))  # default 30 minutes
 CACHE_PREFIX = os.getenv("SAFE_INIT_SECRET_CACHE_PREFIX", "safe-init-secret::")
 JSON_SECRET_SEPARATOR = "~"  # noqa: S105
+
+
+class SecretResolutionError(Exception):
+    """
+    Custom exception raised when secret resolution fails.
+    """
+
+    def __init__(self, message: str, errors: list[str]):
+        super().__init__(message)
+        self.errors = errors if errors is not None else []
 
 
 def context_has_secrets_to_resolve() -> bool:
@@ -35,6 +45,46 @@ def resolve_secrets() -> Mapping[str, str | None]:
         The resolved secrets as a dictionary.
     """
     common_secret_arn_prefix = os.getenv("SAFE_INIT_SECRET_ARN_PREFIX")
+    secret_arns = gather_secret_arns(common_secret_arn_prefix)
+
+    # Try to get secret values from Redis cache and identify secrets that are not in cache
+    secrets, secrets_not_in_cache = get_secrets_from_cache(secret_arns)
+
+    if secrets_not_in_cache:
+        try:
+            fetched_secrets, errors = get_secrets_from_secrets_manager(secrets_not_in_cache)
+
+            if errors:
+                error_message = f"Failed to retrieve secrets: {errors}"
+                if bool_env("SAFE_INIT_FAIL_ON_SECRET_RESOLUTION_ERROR"):
+                    raise SecretResolutionError(error_message, errors)
+                log_warning(error_message)
+
+            for secret_arn, secret_value in fetched_secrets.items():
+                save_secret_in_cache(secret_arn, secret_value)
+                secrets[secret_arn] = secret_value
+        except Exception as e:
+            if bool_env("SAFE_INIT_FAIL_ON_SECRET_RESOLUTION_ERROR"):
+                raise
+            log_warning("Failed to resolve some secrets", exc_info=e)
+
+    resolved_secrets = process_secrets(secret_arns, secrets)
+
+    log_debug("Resolved secrets", secrets=resolved_secrets.keys())
+
+    return resolved_secrets
+
+
+def gather_secret_arns(common_secret_arn_prefix: str) -> dict[str, str]:
+    """
+    Gathers the secret ARNs from the environment variables.
+
+    Args:
+        common_secret_arn_prefix (str): The common prefix for secret ARNs.
+
+    Returns:
+        A dictionary mapping secret names to their ARNs.
+    """
     secret_arns = {}
     for env_var, secret_arn in os.environ.items():
         if not env_var.endswith(SECRET_SUFFIX):
@@ -45,8 +95,80 @@ def resolve_secrets() -> Mapping[str, str | None]:
             if not common_secret_arn_prefix or secret_arn.startswith(common_secret_arn_prefix)
             else f"{common_secret_arn_prefix}{secret_arn}"
         )
+    return secret_arns
 
+
+def get_secrets_from_cache(secret_arns: dict[str, str]) -> tuple[dict[str, str], list[str]]:
+    """
+    Retrieves secrets from the cache and identifies any that are missing.
+
+    Args:
+        secret_arns (Dict[str, str]): A dictionary mapping secret names to their ARNs.
+
+    Returns:
+        A tuple containing:
+        - A dictionary of secrets retrieved from the cache.
+        - A list of ARNs for secrets that are not in the cache.
+    """
+    secrets_in_cache = {}
+    secrets_not_in_cache = []
+
+    for secret_name, secret_arn in secret_arns.items():
+        secret_value = get_secret_from_cache(secret_arn)
+        if secret_value is not None:
+            secrets_in_cache[secret_name] = secret_value
+        else:
+            secrets_not_in_cache.append(secret_arn)
+
+    return secrets_in_cache, secrets_not_in_cache
+
+
+def get_secrets_from_secrets_manager(secret_arns: list[str]) -> tuple[dict[str, str], list[str]]:
+    """
+    Retrieves secrets from AWS Secrets Manager using the batch method.
+
+    Args:
+        secret_arns (List[str]): A list of secret ARNs to retrieve.
+
+    Returns:
+        A tuple containing:
+        - A dictionary of successfully retrieved secrets.
+        - A list of ARNs for secrets that failed to retrieve.
+    """
+    secrets_client = get_secrets_manager_client()
     secrets = {}
+    errors = []
+
+    try:
+        response = secrets_client.batch_get_secret_value(SecretIdList=secret_arns)
+        for secret in response.get("SecretValues", []):
+            secrets[secret["ARN"]] = secret.get("SecretString")
+
+        for error in response.get("Errors", []):
+            if error["ErrorCode"] == "ResourceNotFoundException":
+                log_warning("Secret not found in Secrets Manager", secret_arn=error["SecretId"])
+            else:
+                errors.append(f"{error['SecretId']}: {error['Message']}")
+    except ClientError as e:
+        log_error("Failed to retrieve secrets from Secrets Manager", exc_info=e)
+        errors.extend(secret_arns)
+
+    return secrets, errors
+
+
+def process_secrets(secret_arns: dict[str, str], secrets: dict[str, str]) -> dict[str, str]:
+    """
+    Processes and resolves the secrets, including handling JSON secrets.
+
+    Args:
+        secret_arns (Dict[str, str]): A dictionary mapping secret names to their ARNs.
+        secrets (Dict[str, str]): A dictionary of secret values.
+
+    Returns:
+        A dictionary of processed and resolved secrets.
+    """
+    resolved_secrets = {}
+
     for secret_name, raw_secret_arn in secret_arns.items():
         try:
             secret_arn = raw_secret_arn
@@ -54,22 +176,19 @@ def resolve_secrets() -> Mapping[str, str | None]:
                 secret_json_key = raw_secret_arn.split(JSON_SECRET_SEPARATOR, 1)[1]
                 secret_arn = raw_secret_arn.split(JSON_SECRET_SEPARATOR, 1)[0]
 
-            if not (secret_value := get_secret_from_cache(secret_arn)):
-                secret_value = get_secret_from_secrets_manager(secret_arn)
+            secret_value = secrets.get(secret_arn)
             if secret_value:
                 if not is_json_secret:
-                    secrets[secret_name] = str(secret_value)
+                    resolved_secrets[secret_name] = str(secret_value)
                     continue
                 secret_json = json.loads(secret_value)
-                secrets[secret_name] = str(secret_json[secret_json_key])
+                resolved_secrets[secret_name] = str(secret_json[secret_json_key])
         except Exception as e:
             if bool_env("SAFE_INIT_FAIL_ON_SECRET_RESOLUTION_ERROR"):
                 raise
-            log_warning("Failed to resolve secret", secret_arn=secret_arn, exc_info=e)
+            log_warning("Failed to process secret", secret_arn=secret_arn, exc_info=e)
 
-    log_debug("Resolved secrets", secrets=secrets.keys())
-
-    return secrets
+    return resolved_secrets
 
 
 def get_redis_client() -> redis.Redis:
@@ -145,29 +264,3 @@ def save_secret_in_cache(secret_arn: str, secret_value: str) -> None:
         ex=CACHE_TTL,
     )
     log_debug("Secret saved in cache", secret_arn=secret_arn)
-
-
-def get_secret_from_secrets_manager(secret_arn: str) -> str | None:
-    """
-    Retrieves the secret value from Secrets Manager.
-
-    Args:
-        secret_arn (str): The ARN of the secret to retrieve.
-
-    Returns:
-        The secret value.
-    """
-    secrets_client = get_secrets_manager_client()
-    try:
-        secret = secrets_client.get_secret_value(SecretId=secret_arn)
-    except ClientError as e:
-        if e.response["Error"]["Code"] == "ResourceNotFoundException":
-            log_warning("Secret not found in Secrets Manager", secret_arn=secret_arn)
-            return None
-        raise
-
-    secret_value = secret["SecretString"]
-    log_debug("Secret retrieved from Secrets Manager", secret_arn=secret_arn, version_id=secret["VersionId"])
-
-    save_secret_in_cache(secret_arn, secret_value)
-    return secret_value
