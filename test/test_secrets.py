@@ -50,7 +50,9 @@ class TestSecretResolution(unittest.TestCase):
     @patch("safe_init.secrets.get_secret_from_cache")
     @patch("safe_init.secrets.save_secret_in_cache")
     @patch("safe_init.secrets.get_secrets_from_secrets_manager")
-    def test_resolve_secrets_success(self, mock_get_secrets_from_secrets_manager, mock_save_secret_in_cache, mock_get_secret_from_cache):
+    def test_resolve_secrets_success(
+        self, mock_get_secrets_from_secrets_manager, mock_save_secret_in_cache, mock_get_secret_from_cache
+    ):
         with env(
             {
                 "SECRET1_SECRET_ARN": "arn:aws:secretsmanager:us-east-1:123456789012:secret:secret1",
@@ -58,7 +60,10 @@ class TestSecretResolution(unittest.TestCase):
             }
         ):
             mock_get_secret_from_cache.side_effect = [None, "secret_value2"]
-            mock_get_secrets_from_secrets_manager.return_value = ({"arn:aws:secretsmanager:us-east-1:123456789012:secret:secret1": "secret_value1"}, None)
+            mock_get_secrets_from_secrets_manager.return_value = (
+                {"arn:aws:secretsmanager:us-east-1:123456789012:secret:secret1": "secret_value1"},
+                None,
+            )
 
             secrets = resolve_secrets()
 
@@ -68,7 +73,9 @@ class TestSecretResolution(unittest.TestCase):
             mock_get_secrets_from_secrets_manager.assert_called_once_with(
                 ["arn:aws:secretsmanager:us-east-1:123456789012:secret:secret1"]
             )
-            mock_save_secret_in_cache.assert_called_once_with("arn:aws:secretsmanager:us-east-1:123456789012:secret:secret1", "secret_value1")
+            mock_save_secret_in_cache.assert_called_once_with(
+                "arn:aws:secretsmanager:us-east-1:123456789012:secret:secret1", "secret_value1"
+            )
 
     @patch("safe_init.secrets.get_secret_from_cache")
     @patch("safe_init.secrets.get_secrets_from_secrets_manager")
@@ -173,7 +180,9 @@ class TestSecretResolution(unittest.TestCase):
         }
         mock_get_secrets_manager_client.return_value = mock_secrets_manager_client
 
-        secret_values, errors = get_secrets_from_secrets_manager(["arn:aws:secretsmanager:us-east-1:123456789012:secret:secret1"])
+        secret_values, errors = get_secrets_from_secrets_manager(
+            ["arn:aws:secretsmanager:us-east-1:123456789012:secret:secret1"]
+        )
 
         assert errors == []
         self.assertEqual("secret_value", secret_values["arn:aws:secretsmanager:us-east-1:123456789012:secret:secret1"])
@@ -190,13 +199,15 @@ class TestSecretResolution(unittest.TestCase):
                 {
                     "SecretId": "arn:aws:secretsmanager:us-east-1:123456789012:secret1",
                     "ErrorCode": "ResourceNotFoundException",
-                    "Message": "Secret not found"
+                    "Message": "Secret not found",
                 }
-            ]
+            ],
         }
         mock_get_secrets_manager_client.return_value = mock_secrets_manager_client
 
-        secret_values, errors = get_secrets_from_secrets_manager(["arn:aws:secretsmanager:us-east-1:123456789012:secret:secret1"])
+        secret_values, errors = get_secrets_from_secrets_manager(
+            ["arn:aws:secretsmanager:us-east-1:123456789012:secret:secret1"]
+        )
 
         assert secret_values == {}
         assert errors == []
@@ -207,7 +218,9 @@ class TestSecretResolution(unittest.TestCase):
     @patch("safe_init.secrets.get_secret_from_cache")
     @patch("safe_init.secrets.save_secret_in_cache")
     @patch("safe_init.secrets.get_secrets_from_secrets_manager")
-    def test_resolve_json_secrets_success(self, mock_get_secrets_from_secrets_manager, mock_save_secret_in_cache, mock_get_secret_from_cache):
+    def test_resolve_json_secrets_success(
+        self, mock_get_secrets_from_secrets_manager, mock_save_secret_in_cache, mock_get_secret_from_cache
+    ):
         with env(
             {
                 "SECRET1_SECRET_ARN": "arn:aws:secretsmanager:us-east-1:123456789012:secret:secret1~key1",
@@ -215,7 +228,10 @@ class TestSecretResolution(unittest.TestCase):
             }
         ):
             mock_get_secret_from_cache.side_effect = [None, json.dumps({"key2": "value2"})]
-            mock_get_secrets_from_secrets_manager.return_value = ({"arn:aws:secretsmanager:us-east-1:123456789012:secret:secret1": json.dumps({"key1": "value1"})}, None)
+            mock_get_secrets_from_secrets_manager.return_value = (
+                {"arn:aws:secretsmanager:us-east-1:123456789012:secret:secret1~key1": json.dumps({"key1": "value1"})},
+                None,
+            )
 
             secrets = resolve_secrets()
 
@@ -223,12 +239,15 @@ class TestSecretResolution(unittest.TestCase):
             mock_get_secret_from_cache.assert_any_call("arn:aws:secretsmanager:us-east-1:123456789012:secret:secret1")
             mock_get_secret_from_cache.assert_any_call("arn:aws:secretsmanager:us-east-1:123456789012:secret:secret2")
             mock_get_secrets_from_secrets_manager.assert_called_once_with(
-                ["arn:aws:secretsmanager:us-east-1:123456789012:secret:secret1"]
+                ["arn:aws:secretsmanager:us-east-1:123456789012:secret:secret1~key1"]
             )
 
     @patch("safe_init.secrets.get_secret_from_cache")
-    @patch("safe_init.secrets.get_secret_from_secrets_manager")
-    def test_resolve_secrets_with_common_prefix(self, mock_get_secret_from_secrets_manager, mock_get_secret_from_cache):
+    @patch("safe_init.secrets.save_secret_in_cache")
+    @patch("safe_init.secrets.get_secrets_from_secrets_manager")
+    def test_resolve_secrets_with_common_prefix(
+        self, mock_get_secrets_from_secrets_manager, mock_save_secret_in_cache, mock_get_secret_from_cache
+    ):
         with env(
             {
                 "SAFE_INIT_SECRET_ARN_PREFIX": "arn:aws:secretsmanager:us-east-1:123456789012:",
@@ -237,15 +256,21 @@ class TestSecretResolution(unittest.TestCase):
             }
         ):
             mock_get_secret_from_cache.side_effect = [None, "secret_value2"]
-            mock_get_secret_from_secrets_manager.return_value = "secret_value1"
+            mock_get_secrets_from_secrets_manager.return_value = (
+                {"arn:aws:secretsmanager:us-east-1:123456789012:secret:secret1": "secret_value1"},
+                None,
+            )
 
             secrets = resolve_secrets()
 
             self.assertEqual({"SECRET1": "secret_value1", "SECRET2": "secret_value2"}, secrets)
             mock_get_secret_from_cache.assert_any_call("arn:aws:secretsmanager:us-east-1:123456789012:secret:secret1")
             mock_get_secret_from_cache.assert_any_call("arn:aws:secretsmanager:us-east-1:123456789012:secret:secret2")
-            mock_get_secret_from_secrets_manager.assert_called_once_with(
-                "arn:aws:secretsmanager:us-east-1:123456789012:secret:secret1"
+            mock_get_secrets_from_secrets_manager.assert_called_once_with(
+                ["arn:aws:secretsmanager:us-east-1:123456789012:secret:secret1"]
+            )
+            mock_save_secret_in_cache.assert_called_once_with(
+                "arn:aws:secretsmanager:us-east-1:123456789012:secret:secret1", "secret_value1"
             )
 
     @patch("safe_init.secrets.get_secret_from_cache")
@@ -262,7 +287,13 @@ class TestSecretResolution(unittest.TestCase):
             }
         ):
             mock_get_secret_from_cache.return_value = None
-            mock_get_secrets_from_secrets_manager.return_value = ({"arn:aws:secretsmanager:us-east-1:123456789012:secret:secret1": "secret_value1", "arn:aws:secretsmanager:us-east-1:123456789012:secret:secret2": "secret_value2"}, None)
+            mock_get_secrets_from_secrets_manager.return_value = (
+                {
+                    "arn:aws:secretsmanager:us-east-1:123456789012:secret:secret1": "secret_value1",
+                    "arn:aws:secretsmanager:us-east-1:123456789012:secret:secret2": "secret_value2",
+                },
+                None,
+            )
 
             secrets = resolve_secrets()
 
@@ -270,6 +301,11 @@ class TestSecretResolution(unittest.TestCase):
             mock_get_secret_from_cache.assert_any_call("arn:aws:secretsmanager:us-east-1:123456789012:secret:secret1")
             mock_get_secret_from_cache.assert_any_call("arn:aws:secretsmanager:us-east-1:123456789012:secret:secret2")
             mock_get_secrets_from_secrets_manager.assert_any_call(
-                ["arn:aws:secretsmanager:us-east-1:123456789012:secret:secret1", "arn:aws:secretsmanager:us-east-1:123456789012:secret:secret2"]
+                [
+                    "arn:aws:secretsmanager:us-east-1:123456789012:secret:secret1",
+                    "arn:aws:secretsmanager:us-east-1:123456789012:secret:secret2",
+                ]
             )
-            mock_save_secret_in_cache.assert_any_call("arn:aws:secretsmanager:us-east-1:123456789012:secret:secret1", "secret_value1")
+            mock_save_secret_in_cache.assert_any_call(
+                "arn:aws:secretsmanager:us-east-1:123456789012:secret:secret1", "secret_value1"
+            )

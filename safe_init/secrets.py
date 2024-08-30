@@ -25,7 +25,7 @@ class SecretResolutionError(Exception):
     Custom exception raised when secret resolution fails.
     """
 
-    def __init__(self, message: str, errors: list[str]) -> "SecretResolutionError":
+    def __init__(self, message: str, errors: list[str]) -> None:
         super().__init__(message)
         self.errors = errors if errors is not None else []
 
@@ -56,9 +56,7 @@ def resolve_secrets() -> Mapping[str, str | None]:
 
             if errors:
                 error_message = f"Failed to retrieve secrets: {errors}"
-                if bool_env("SAFE_INIT_FAIL_ON_SECRET_RESOLUTION_ERROR"):
-                    raise SecretResolutionError(error_message, errors)  # noqa: TRY301
-                log_warning(error_message)
+                raise SecretResolutionError(error_message, errors)  # noqa: TRY301
 
             for secret_arn, secret_value in fetched_secrets.items():
                 save_secret_in_cache(secret_arn, secret_value)
@@ -113,8 +111,8 @@ def get_secrets_from_cache(secret_arns: dict[str, str]) -> tuple[dict[str, str],
     secrets_in_cache = {}
     secrets_not_in_cache = []
 
-    for secret_name, secret_arn in secret_arns.items():
-        secret_value = get_secret_from_cache(secret_arn)
+    for _, secret_arn in secret_arns.items():
+        secret_value = get_secret_from_cache(_strip_json_key_prefix_if_present(secret_arn))
         if secret_value is not None:
             secrets_in_cache[secret_arn] = secret_value
         else:
@@ -132,17 +130,28 @@ def get_secrets_from_secrets_manager(secret_arns: list[str]) -> tuple[dict[str, 
 
     Returns:
         A tuple containing:
-        - A dictionary of successfully retrieved secrets.
+        - A dictionary of successfully retrieved secrets mapped to their original ARNs with suffixes.
         - A list of ARNs for secrets that failed to retrieve.
     """
     secrets_client = get_secrets_manager_client()
     secrets = {}
     errors = []
 
+    # Strip json-key suffixes (if present) and create a unique set of secret ARNs
+    stripped_secret_arns = {_strip_json_key_prefix_if_present(arn) for arn in secret_arns}
+
     try:
-        response = secrets_client.batch_get_secret_value(SecretIdList=secret_arns)
+        response = secrets_client.batch_get_secret_value(SecretIdList=list(stripped_secret_arns))
+
+        # Process the retrieved secrets and map them back to the original ARNs with suffixes
         for secret in response.get("SecretValues", []):
-            secrets[secret["ARN"]] = secret.get("SecretString")
+            original_secret_arn = secret["ARN"]
+            secret_value = secret.get("SecretString")
+
+            # Map the secret value to all original ARNs with suffixes
+            for arn in secret_arns:
+                if _strip_json_key_prefix_if_present(arn) == original_secret_arn:
+                    secrets[arn] = secret_value
 
         for error in response.get("Errors", []):
             if error["ErrorCode"] == "ResourceNotFoundException":
@@ -169,12 +178,10 @@ def process_secrets(secret_arns: dict[str, str], secrets: dict[str, str]) -> dic
     """
     resolved_secrets = {}
 
-    for secret_name, raw_secret_arn in secret_arns.items():
+    for secret_name, secret_arn in secret_arns.items():
         try:
-            secret_arn = raw_secret_arn
-            if is_json_secret := JSON_SECRET_SEPARATOR in raw_secret_arn:
-                secret_json_key = raw_secret_arn.split(JSON_SECRET_SEPARATOR, 1)[1]
-                secret_arn = raw_secret_arn.split(JSON_SECRET_SEPARATOR, 1)[0]
+            if is_json_secret := JSON_SECRET_SEPARATOR in secret_arn:
+                secret_json_key = secret_arn.split(JSON_SECRET_SEPARATOR, 1)[1]
 
             secret_value = secrets.get(secret_arn)
             if secret_value:
@@ -254,13 +261,27 @@ def save_secret_in_cache(secret_arn: str, secret_value: str) -> None:
         secret_arn (str): The ARN of the secret to save.
         secret_value (str): The value of the secret to save.
     """
+    stripped_secret_arn = _strip_json_key_prefix_if_present(secret_arn)
     if not is_secret_cache_enabled():
-        log_debug("Secret caching is disabled, not saving", secret_arn=secret_arn)
+        log_debug("Secret caching is disabled, not saving", secret_arn=stripped_secret_arn)
         return
     redis_client = get_redis_client()
     redis_client.set(
-        f"{CACHE_PREFIX}{secret_arn}",
+        f"{CACHE_PREFIX}{stripped_secret_arn}",
         secret_value,
         ex=CACHE_TTL,
     )
-    log_debug("Secret saved in cache", secret_arn=secret_arn)
+    log_debug("Secret saved in cache", secret_arn=stripped_secret_arn)
+
+
+def _strip_json_key_prefix_if_present(secret_arn: str) -> str:
+    """
+    Strips the JSON key suffix from the secret ARN if present.
+
+    Args:
+        secret_arn (str): The secret ARN that may include a suffix.
+
+    Returns:
+        The base secret ARN without any suffix.
+    """
+    return secret_arn.split(JSON_SECRET_SEPARATOR, 1)[0] if JSON_SECRET_SEPARATOR in secret_arn else secret_arn
