@@ -25,7 +25,7 @@ class SecretResolutionError(Exception):
     Custom exception raised when secret resolution fails.
     """
 
-    def __init__(self, message: str, errors: list[str]):
+    def __init__(self, message: str, errors: list[str]) -> "SecretResolutionError":
         super().__init__(message)
         self.errors = errors if errors is not None else []
 
@@ -57,7 +57,7 @@ def resolve_secrets() -> Mapping[str, str | None]:
             if errors:
                 error_message = f"Failed to retrieve secrets: {errors}"
                 if bool_env("SAFE_INIT_FAIL_ON_SECRET_RESOLUTION_ERROR"):
-                    raise SecretResolutionError(error_message, errors)
+                    raise SecretResolutionError(error_message, errors)  # noqa: TRY301
                 log_warning(error_message)
 
             for secret_arn, secret_value in fetched_secrets.items():
@@ -75,7 +75,7 @@ def resolve_secrets() -> Mapping[str, str | None]:
     return resolved_secrets
 
 
-def gather_secret_arns(common_secret_arn_prefix: str) -> dict[str, str]:
+def gather_secret_arns(common_secret_arn_prefix: str | None) -> dict[str, str]:
     """
     Gathers the secret ARNs from the environment variables.
 
@@ -116,7 +116,7 @@ def get_secrets_from_cache(secret_arns: dict[str, str]) -> tuple[dict[str, str],
     for secret_name, secret_arn in secret_arns.items():
         secret_value = get_secret_from_cache(secret_arn)
         if secret_value is not None:
-            secrets_in_cache[secret_name] = secret_value
+            secrets_in_cache[secret_arn] = secret_value
         else:
             secrets_not_in_cache.append(secret_arn)
 
