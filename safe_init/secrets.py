@@ -12,7 +12,7 @@ from safe_init.utils import bool_env
 if TYPE_CHECKING:
     from boto3_type_annotations.secretsmanager import Client
 
-from safe_init.safe_logging import log_debug, log_error, log_warning
+from safe_init.safe_logging import log_debug, log_error, log_info, log_warning
 
 SECRET_SUFFIX = os.getenv("SAFE_INIT_SECRET_SUFFIX", os.getenv("SAFE_INIT_SECRET_ARN_SUFFIX", "_SECRET_ARN"))
 CACHE_TTL = int(os.getenv("SAFE_INIT_SECRET_CACHE_TTL", "1800"))  # default 30 minutes
@@ -46,19 +46,25 @@ def resolve_secrets() -> Mapping[str, str | None]:
     """
     common_secret_arn_prefix = os.getenv("SAFE_INIT_SECRET_ARN_PREFIX")
     secret_arns = gather_secret_arns(common_secret_arn_prefix)
+    log_info("Gathered secret ARNs", secret_arns=secret_arns, common_secret_arn_prefix=common_secret_arn_prefix)
+    for secret_arn in secret_arns.values():
+        log_debug("Gathered Secret ARN", secret_arn=secret_arn)
 
     # Try to get secret values from Redis cache and identify secrets that are not in cache
-    secrets, secrets_not_in_cache = get_secrets_from_cache(secret_arns)
+    secrets = {}
+    secrets_not_in_cache = list(secret_arns.values())
 
     if secrets_not_in_cache:
         try:
             fetched_secrets, errors = get_secrets_from_secrets_manager(secrets_not_in_cache)
+            log_info("Fetched secrets from Secrets Manager", fetched_secrets=fetched_secrets, errors=errors)
 
             if errors:
                 error_message = f"Failed to retrieve secrets: {errors}"
                 raise SecretResolutionError(error_message, errors)  # noqa: TRY301
 
             for secret_arn, secret_value in fetched_secrets.items():
+                log_info("Saving secret in cache", secret_arn=secret_arn)
                 save_secret_in_cache(secret_arn, secret_value)
                 secrets[secret_arn] = secret_value
         except Exception as e:
@@ -67,6 +73,7 @@ def resolve_secrets() -> Mapping[str, str | None]:
             log_warning("Failed to resolve some secrets", exc_info=e)
 
     resolved_secrets = process_secrets(secret_arns, secrets)
+    log_info("Processed secrets", resolved_secrets=resolved_secrets)
 
     log_debug("Resolved secrets", secrets=resolved_secrets.keys())
 
@@ -139,6 +146,9 @@ def get_secrets_from_secrets_manager(secret_arns: list[str]) -> tuple[dict[str, 
 
     # Strip json-key suffixes (if present) and create a unique set of secret ARNs
     stripped_secret_arns = {_strip_json_key_prefix_if_present(arn) for arn in secret_arns}
+    log_info("Retrieving secrets from Secrets Manager", strp_secret_arns=stripped_secret_arns)
+    for arn in stripped_secret_arns:
+        log_debug("Retrieving secret from Secrets Manager by strp", secret_arn=arn)
 
     try:
         response = secrets_client.batch_get_secret_value(SecretIdList=list(stripped_secret_arns))
