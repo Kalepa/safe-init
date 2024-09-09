@@ -2,6 +2,10 @@
 
 ---
 
+## v1.2.2 (2024-09-09)
+### Improvements
+- AWS Secrets resolution will use batch method to reduce number of API calls and network round trips.
+
 ## v1.2.1 (2024-08-01)
 ### Improvements
 - Safe Init will no longer add the configured AWS Secrets Manager secret ARN prefix to the specified value if it already contains a prefix.
