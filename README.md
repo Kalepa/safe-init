@@ -99,28 +99,32 @@ With these configuration options, Safe Init provides a flexible and customizable
 
 ### Custom Logger
 
-If you prefer to use your own logger instead of the default structlog logger, Safe Init has got you covered! Simply set the `safe_init_logger_getter` global variable to a function that returns your logger instance, and Safe Init will use it for logging.
+If you prefer to use your own logger instead of the default structlog logger, Safe Init has got you covered! Simply set the `safe_init_logger_getter` ContextVar to a function that returns your logger instance, and Safe Init will use it for logging.
 
 ```python
+from contextvars import ContextVar
+from typing import Callable
+
 import logging
-import safe_init
 
-def my_logger_getter():
-    return logging.getLogger('my_logger')
+def custom_logger():
+    return logging.getLogger("my_custom_logger")
 
-safe_init.safe_logging.safe_init_logger_getter = my_logger_getter
+safe_init_logger_getter: ContextVar[Callable] = ContextVar("safe_init_logger_getter")
+safe_init_logger_getter.set(custom_logger)
 ```
 
 Now, Safe Init will use your custom logger for all its logging needs.
 
 ### Custom Slack Webhook URL
 
-If you don't want to set the Slack webhook URL using an environment variable, no worries! You can set the `safe_init_slack_webhook_url` global variable to your webhook URL, and Safe Init will use it for sending Slack notifications.
+If you don't want to set the Slack webhook URL using an environment variable, no worries! You can set the `safe_init_slack_webhook_url` ContextVar to your webhook URL, and Safe Init will use it for sending Slack notifications.
 
 ```python
-import safe_init
+from contextvars import ContextVar
 
-safe_init.slack.safe_init_slack_webhook_url = 'https://hooks.slack.com/services/xxx/yyy/zzz'
+safe_init_webhook_url: ContextVar[str] = ContextVar("safe_init_slack_webhook_url")
+safe_init_webhook_url.set("https://hooks.slack.com/services/xxx/yyy/zzz")
 ```
 
 And just like that, Safe Init will start sending notifications to your custom Slack webhook. It's like having your own personal messenger pigeon! 🕊️

@@ -1,6 +1,9 @@
 # Changelog
 
 ---
+## v1.2.3 (2024-09-24)
+### Improvements
+- Safe Init will now fall back to fetching secrets from AWS Secrets Manager if fetching from Redis throws any exception.
 
 ## v1.2.2 (2024-09-09)
 ### Improvements

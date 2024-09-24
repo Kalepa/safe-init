@@ -44,18 +44,21 @@ Beyond basic setup, Safe Init offers advanced configurations for deeper customiz
 By default, Safe Init uses structlog for logging. To use a custom logger:
 
 1. Import your logger and Safe Init in your Lambda code.
-2. Assign your logger to `safe_init.safe_logging.safe_init_logger_getter`.
+2. Assign your logger to a `safe_init_logger_getter` ContextVar.
 
 Example:
 
 ```python
+from contextvars import ContextVar
+from typing import Callable
+
 import logging
-import safe_init
 
 def custom_logger():
     return logging.getLogger("my_custom_logger")
 
-safe_init.safe_logging.safe_init_logger_getter = custom_logger
+safe_init_logger_getter: ContextVar[Callable] = ContextVar("safe_init_logger_getter")
+safe_init_logger_getter.set(custom_logger)
 ```
 
 ### Execution Time Tracing
