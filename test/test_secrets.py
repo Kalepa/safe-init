@@ -154,6 +154,23 @@ class TestSecretResolution(unittest.TestCase):
         )
 
     @patch("safe_init.secrets.get_redis_client")
+    @patch("safe_init.error_utils.log_error")
+    def test_get_secret_from_cache_does_not_throw(self, mock_log_error, mock_get_redis_client):
+        mock_redis_client = MagicMock()
+        mock_redis_client.get.side_effect = Exception("Failed to get secret from cache")
+        mock_get_redis_client.return_value = mock_redis_client
+
+        secret_value = get_secret_from_cache("arn:aws:secretsmanager:us-east-1:123456789012:secret:secret1")
+
+        self.assertIsNone(secret_value)
+        mock_redis_client.get.assert_called_once_with(
+            "safe-init-secret::arn:aws:secretsmanager:us-east-1:123456789012:secret:secret1"
+        )
+        mock_log_error.assert_called_once()
+        args, kwargs = mock_log_error.call_args
+        assert "Suppressed exception in get_secret_from_cache" in args[0]
+
+    @patch("safe_init.secrets.get_redis_client")
     def test_save_secret_in_cache(self, mock_get_redis_client):
         mock_redis_client = MagicMock()
         mock_get_redis_client.return_value = mock_redis_client
