@@ -7,6 +7,7 @@ import boto3
 import redis
 from botocore.exceptions import ClientError
 
+from safe_init.error_utils import suppress_exceptions
 from safe_init.utils import bool_env
 
 if TYPE_CHECKING:
@@ -108,8 +109,8 @@ def get_secrets_from_cache(secret_arns: dict[str, str]) -> tuple[dict[str, str],
         - A dictionary of secrets retrieved from the cache.
         - A list of ARNs for secrets that are not in the cache.
     """
-    secrets_in_cache = {}
-    secrets_not_in_cache = []
+    secrets_in_cache: dict[str, str] = {}
+    secrets_not_in_cache: list[str] = []
 
     for _, secret_arn in secret_arns.items():
         secret_value = get_secret_from_cache(_strip_json_key_prefix_if_present(secret_arn))
@@ -230,6 +231,7 @@ def is_secret_cache_enabled() -> bool:
     )
 
 
+@suppress_exceptions()
 def get_secret_from_cache(secret_arn: str) -> str | None:
     """
     Retrieves the secret value from the cache.
@@ -253,6 +255,7 @@ def get_secret_from_cache(secret_arn: str) -> str | None:
     return secret_value  # type: ignore[return-value]
 
 
+@suppress_exceptions()
 def save_secret_in_cache(secret_arn: str, secret_value: str) -> None:
     """
     Saves the secret value in the cache.
