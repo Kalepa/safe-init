@@ -33,6 +33,7 @@ Safe Init is a Python library that provides a comprehensive set of tools for ini
 - **Initialization Checks**: Detects missing Sentry initialization and Lambda init phase timeouts, preventing silent failures and providing early warning signs.
 - **Timeout Notifications**: Sends notifications a configurable number of seconds before the Lambda timeout occurs, giving you a heads-up to investigate and address potential issues.
 - **AWS Secrets Resolution**: Automatically resolves AWS Secrets Manager secrets in environment variables, simplifying secret management and access.
+- **Unlimited Environment Variables**: Supports loading extra environment variables from a JSON file, allowing you to easily manage and configure your Lambda functions.
 
 ### Customization and Flexibility
 - **Customizable Logger**: Allows you to use a custom logger instead of the default structlog logger, providing flexibility to integrate with your existing logging setup.
@@ -92,6 +93,7 @@ Safe Init provides a wide range of configuration options to customize its behavi
 - `SAFE_INIT_SECRET_CACHE_TTL` (optional): TTL for cached secrets in seconds. Defaults to 1800 seconds (30 minutes). Use this to specify how long resolved secrets should be cached in Redis.
 - `SAFE_INIT_SECRET_CACHE_PREFIX` (optional): Prefix for cached secrets in Redis. Defaults to `safe-init-secret::`. Use this to specify the prefix for keys used to store cached secrets in Redis.
 - `SAFE_INIT_FAIL_ON_SECRET_RESOLUTION_ERROR` (optional): Set to `true` to fail the Lambda initialization if an error occurs during secret resolution. Safe Init will raise an exception if an error occurs during secret resolution, preventing the Lambda function from starting.
+- `SAFE_INIT_EXTRA_ENV_VARS_FILE` (optional): Path to a JSON file containing extra environment variables to load. Safe Init will load the environment variables from the specified file and add them to the Lambda environment.
 
 With these configuration options, Safe Init provides a flexible and customizable way to enhance your Lambda functions' error handling, logging, and monitoring capabilities. Mix and match the options to suit your needs, and let Safe Init be your loyal companion on your Lambda adventures! 🚀
 
