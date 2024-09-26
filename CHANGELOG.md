@@ -1,6 +1,10 @@
 # Changelog
 
 ---
+## v1.3.0 (2024-09-26)
+### New features
+- Safe Init now allows you to work around the crazy 4KB limit on environment variables in AWS Lambda. Just put some of your environment variables in a JSON file (`.env.json` by default) and Safe Init will take care of the rest.
+
 ## v1.2.3 (2024-09-24)
 ### Improvements
 - Safe Init will now fall back to fetching secrets from AWS Secrets Manager if fetching from Redis throws any exception.
