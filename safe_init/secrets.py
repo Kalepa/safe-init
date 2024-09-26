@@ -31,22 +31,29 @@ class SecretResolutionError(Exception):
         self.errors = errors if errors is not None else []
 
 
-def context_has_secrets_to_resolve() -> bool:
+def context_has_secrets_to_resolve(extra_env_vars: Mapping[str, str | None] | None = None) -> bool:
     """
     Returns whether the execution context has secrets to resolve.
+
+    Args:
+        extra_env_vars (Mapping[str, str] | None): Additional environment variables to consider.
     """
-    return any(env_var.endswith(SECRET_SUFFIX) for env_var in os.environ.keys())  # noqa: SIM118
+    env_keys = os.environ.keys() | (extra_env_vars.keys() if extra_env_vars else set())
+    return any(env_var.endswith(SECRET_SUFFIX) for env_var in env_keys)
 
 
-def resolve_secrets() -> Mapping[str, str | None]:
+def resolve_secrets(extra_env_vars: Mapping[str, str | None] | None = None) -> Mapping[str, str | None]:
     """
     Resolves the secrets in the execution context and returns them as a dictionary.
+
+    Args:
+        extra_env_vars (Mapping[str, str] | None): Additional environment variables to consider.
 
     Returns:
         The resolved secrets as a dictionary.
     """
     common_secret_arn_prefix = os.getenv("SAFE_INIT_SECRET_ARN_PREFIX")
-    secret_arns = gather_secret_arns(common_secret_arn_prefix)
+    secret_arns = gather_secret_arns(common_secret_arn_prefix, extra_env_vars)
 
     # Try to get secret values from Redis cache and identify secrets that are not in cache
     secrets, secrets_not_in_cache = get_secrets_from_cache(secret_arns)
@@ -74,18 +81,25 @@ def resolve_secrets() -> Mapping[str, str | None]:
     return resolved_secrets
 
 
-def gather_secret_arns(common_secret_arn_prefix: str | None) -> dict[str, str]:
+def gather_secret_arns(
+    common_secret_arn_prefix: str | None,
+    extra_env_vars: Mapping[str, str | None] | None = None,
+) -> dict[str, str]:
     """
     Gathers the secret ARNs from the environment variables.
 
     Args:
         common_secret_arn_prefix (str): The common prefix for secret ARNs.
+        extra_env_vars (Mapping[str, str] | None): Additional environment variables to consider.
 
     Returns:
         A dictionary mapping secret names to their ARNs.
     """
     secret_arns = {}
-    for env_var, secret_arn in os.environ.items():
+    env_vars = os.environ.copy()
+    if extra_env_vars:
+        env_vars.update(extra_env_vars)  # type: ignore[arg-type]
+    for env_var, secret_arn in env_vars.items():
         if not env_var.endswith(SECRET_SUFFIX):
             continue
         secret_name = env_var[: -len(SECRET_SUFFIX)]

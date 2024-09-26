@@ -12,12 +12,13 @@ from typing import Any
 
 from safe_init.decorator import safe_wrapper
 from safe_init.dlq import SafeInitDummyHandler, context_has_dlq
+from safe_init.environment import has_extra_env_vars, load_extra_env_vars
 from safe_init.errors import (
     SafeInitError,
     SafeInitInitPhaseTimeoutWarning,
     SafeInitMissingSentryWarning,
 )
-from safe_init.safe_logging import log_exception, log_warning
+from safe_init.safe_logging import log_debug, log_exception, log_warning
 from safe_init.secrets import context_has_secrets_to_resolve, resolve_secrets
 from safe_init.sentry import sentry_capture
 from safe_init.slack import slack_notify
@@ -62,17 +63,24 @@ def _init_handler() -> Callable:
             msg = "SAFE_INIT_HANDLER environment variable is not set"
             raise SafeInitError(msg)  # noqa: TRY301
 
-        secrets_env: Mapping[str, str | None] = {}
-        if bool_env("SAFE_INIT_RESOLVE_SECRETS") and context_has_secrets_to_resolve():
-            secrets_env = resolve_secrets()
+        extra_env_vars: Mapping[str, str | None] = {}
+        if has_extra_env_vars():
+            extra_env_vars = load_extra_env_vars()  # type: ignore[assignment]
+            log_debug("Loaded extra environment variables", extra_env_vars=extra_env_vars)
 
-        with env(secrets_env):
+        secrets_env: Mapping[str, str | None] = {}
+        if bool_env("SAFE_INIT_RESOLVE_SECRETS") and context_has_secrets_to_resolve(extra_env_vars):
+            secrets_env = resolve_secrets(extra_env_vars)
+
+        custom_env = {**secrets_env, **extra_env_vars}
+
+        with env(custom_env):
             _pre_import_hook(target_handler)
             root_module, handler_name = target_handler.rsplit(".", 1)
             handler_module = import_module(".".join(root_module.split("/")))
             _post_import_hook(target_handler)
 
-        exec_result = safe_wrapper(env_wrapped(getattr(handler_module, handler_name), secrets_env))
+        exec_result = safe_wrapper(env_wrapped(getattr(handler_module, handler_name), custom_env))
 
         if not bool_env("SAFE_INIT_NO_DETECT_UNINITIALIZED_SENTRY") and not get_sentry_sdk().Hub.current.client:
             msg = "Detected missing Sentry initialization"

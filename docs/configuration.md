@@ -32,6 +32,7 @@ Safe Init provides a flexible and extensive configuration system primarily throu
 | `SAFE_INIT_SECRET_CACHE_TTL`                | TTL for cached secrets in seconds.                                                            | 1800 (30 minutes)                       |
 | `SAFE_INIT_SECRET_CACHE_PREFIX`             | Prefix for cached secrets in Redis.                                                           | `safe-init-secret::`                    |
 | `SAFE_INIT_FAIL_ON_SECRET_RESOLUTION_ERROR` | Fail the Lambda initialization if an error occurs during secret resolution.                   | False                                   |
+| `SAFE_INIT_EXTRA_ENV_VARS_FILE`             | Path to a file containing additional environment variables to load.                           | `.env.json`                             |
 
 ## Detailed Configuration Options
 
@@ -103,6 +104,9 @@ This prefix is used to identify cached secrets in Redis. By default, Safe Init u
 
 ### `SAFE_INIT_FAIL_ON_SECRET_RESOLUTION_ERROR`
 When set to `true`, this option causes the Lambda initialization to fail if an error occurs during secret resolution. This can be useful for ensuring that your Lambda functions do not start with unresolved secrets, which could lead to runtime errors or security vulnerabilities.
+
+### `SAFE_INIT_EXTRA_ENV_VARS_FILE`
+This variable specifies the path to a file containing additional environment variables to load into the Lambda execution environment. The file should be in JSON format, with each key-value pair representing an environment variable. This feature allows you to inject custom configuration settings or sensitive data into your Lambda functions without hardcoding them in your code or deployment scripts, and to work around the insane 4KB limit on environment variable size in AWS Lambda.
 
 ## Advanced Configuration
 

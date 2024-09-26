@@ -3,8 +3,6 @@ import os
 import unittest
 from unittest.mock import MagicMock, patch
 
-from botocore.exceptions import ClientError
-
 from safe_init.secrets import (
     context_has_secrets_to_resolve,
     get_redis_client,
@@ -44,6 +42,14 @@ class TestSecretResolution(unittest.TestCase):
         with env({"SECRET1_SECRET_ARN": "arn:aws:secretsmanager:us-east-1:123456789012:secret:secret1"}):
             self.assertTrue(context_has_secrets_to_resolve())
 
+    def test_context_has_secrets_to_resolve_true_with_extra_env_vars(self):
+        self.assertFalse(context_has_secrets_to_resolve())
+        self.assertTrue(
+            context_has_secrets_to_resolve(
+                {"SECRET1_SECRET_ARN": "arn:aws:secretsmanager:us-east-1:123456789012:secret:secret1"}
+            )
+        )
+
     def test_context_has_secrets_to_resolve_false(self):
         self.assertFalse(context_has_secrets_to_resolve())
 
@@ -75,6 +81,48 @@ class TestSecretResolution(unittest.TestCase):
             )
             mock_save_secret_in_cache.assert_called_once_with(
                 "arn:aws:secretsmanager:us-east-1:123456789012:secret:secret1", "secret_value1"
+            )
+
+    @patch("safe_init.secrets.get_secret_from_cache")
+    @patch("safe_init.secrets.save_secret_in_cache")
+    @patch("safe_init.secrets.get_secrets_from_secrets_manager")
+    def test_resolve_secrets_success_with_extra_env_vars(
+        self, mock_get_secrets_from_secrets_manager, mock_save_secret_in_cache, mock_get_secret_from_cache
+    ):
+        with env(
+            {
+                "SECRET1_SECRET_ARN": "arn:aws:secretsmanager:us-east-1:123456789012:secret:secret1",
+            }
+        ):
+            mock_get_secret_from_cache.side_effect = [None, None]
+            mock_get_secrets_from_secrets_manager.return_value = (
+                {
+                    "arn:aws:secretsmanager:us-east-1:123456789012:secret:secret1": "secret_value1",
+                    "arn:aws:secretsmanager:us-east-1:123456789012:secret:secret-extra": "secret_value_extra",
+                },
+                None,
+            )
+
+            secrets = resolve_secrets(
+                {"SECRET_EXTRA_SECRET_ARN": "arn:aws:secretsmanager:us-east-1:123456789012:secret:secret-extra"}
+            )
+
+            self.assertEqual({"SECRET1": "secret_value1", "SECRET_EXTRA": "secret_value_extra"}, secrets)
+            mock_get_secret_from_cache.assert_any_call("arn:aws:secretsmanager:us-east-1:123456789012:secret:secret1")
+            mock_get_secret_from_cache.assert_any_call(
+                "arn:aws:secretsmanager:us-east-1:123456789012:secret:secret-extra"
+            )
+            mock_get_secrets_from_secrets_manager.assert_called_once_with(
+                [
+                    "arn:aws:secretsmanager:us-east-1:123456789012:secret:secret1",
+                    "arn:aws:secretsmanager:us-east-1:123456789012:secret:secret-extra",
+                ]
+            )
+            mock_save_secret_in_cache.assert_any_call(
+                "arn:aws:secretsmanager:us-east-1:123456789012:secret:secret1", "secret_value1"
+            )
+            mock_save_secret_in_cache.assert_any_call(
+                "arn:aws:secretsmanager:us-east-1:123456789012:secret:secret-extra", "secret_value_extra"
             )
 
     @patch("safe_init.secrets.get_secret_from_cache")

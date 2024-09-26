@@ -120,6 +120,14 @@ PASSWORD_SECRET_ARN=arn:aws:secretsmanager:us-east-1:123456789012:secret:my_secr
 
 In this case, Safe Init will resolve the secret and save the extracted values in the `USERNAME` and `PASSWORD` environment variables.
 
+### Unlimited Environment Variables
+
+Safe Init allows you to define an unlimited number of environment variables for your Lambda functions, enabling you to manage and access configuration values more effectively. Just encode some or all of your environment variables as a JSON object, save in a file deployed alongside your Lambda function code (default `.env.json`), and Safe Init will automatically load them into your Lambda function's environment.
+
+**Configuration Options:**
+
+- `SAFE_INIT_EXTRA_ENV_VARS_FILE` (default: `.env.json`): The file path where additional environment variables are stored. Safe Init will load these variables into your Lambda function's environment.
+
 ## Customization and Flexibility
 
 Safe Init is designed to be flexible and customizable, allowing you to tailor its behavior to fit your specific needs.
