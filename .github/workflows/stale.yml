@@ -1,0 +1,11 @@
+name: Close stale issues and PRs
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '22 11 * * *' # Every day at 11:22 UTC
+
+jobs:
+  stale:
+    name: "Stale bot"
+    uses: Kalepa/gha-workflows/.github/workflows/stale.yml@main
+    secrets: inherit
