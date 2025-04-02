@@ -25,3 +25,9 @@ class SafeInitInitPhaseTimeoutWarning(ImportWarning):
     """
     An exception that is raised when the init (import) phase of a Lambda function is executed more than once.
     """
+
+
+class SafeInitJsonSerializationWarning(TypeError):  # noqa: N818
+    """
+    An exception that is raised when the Lambda handler result cannot be serialized to JSON.
+    """

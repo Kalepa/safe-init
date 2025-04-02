@@ -7,6 +7,7 @@ Also, if this ever breaks, I can always blame Datadog.
 """
 
 import functools
+import json
 import os
 import time
 from collections.abc import Callable
@@ -16,6 +17,7 @@ from awslambdaric.lambda_context import LambdaContext
 
 from safe_init import tracer
 from safe_init.dlq import context_has_dlq, push_event_to_dlq
+from safe_init.errors import SafeInitJsonSerializationWarning
 from safe_init.safe_logging import log_error, log_exception, log_warning
 from safe_init.sentry import sentry_capture
 from safe_init.slack import slack_notify
@@ -98,6 +100,7 @@ class _SafeWrapper(_BaseWrapper):
         """
         Calls the wrapped function with the given arguments and keyword arguments.
         If an exception is raised, logs it and sends a notification to Slack and Sentry.
+        Also checks if the result is JSON serializable and reports to Sentry if not.
         """
         try:
             self.stop_timeout_thread()
@@ -111,7 +114,26 @@ class _SafeWrapper(_BaseWrapper):
             if not bool_env("SAFE_INIT_NO_DATADOG_WRAPPER") and is_lambda_handler(args):
                 func = datadog_lambda_wrapper(func)
 
-            return func(*args, **kwargs)
+            result = func(*args, **kwargs)
+
+            # Check if result is JSON serializable
+            if not bool_env("SAFE_INIT_NO_CHECK_JSON_SERIALIZATION") and is_lambda_handler(args) and result is not None:
+                try:
+                    json.dumps(result)
+                except (TypeError, ValueError, OverflowError) as json_err:
+                    msg = f"Lambda result cannot be serialized to JSON: {json_err!s}"
+                    json_warning = SafeInitJsonSerializationWarning(msg)
+
+                    function_name = args[1].function_name if is_lambda_handler(args) else "unknown"
+                    sentry_capture(
+                        json_warning,
+                        fingerprint=["JSONSerializationWarning", function_name],
+                        tags={"handler": function_name},
+                    )
+
+                    log_warning(msg, result_type=type(result).__name__)
+
+            return result  # noqa: TRY300
         except Exception as e:
             sentry_result = sentry_capture(e)
             if isinstance(e, ImportError):

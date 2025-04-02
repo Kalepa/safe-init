@@ -243,3 +243,50 @@ class TestSafeWrapper(unittest.TestCase):
 
         assert my_fn() == "Hello, world!"
         mock_traced.assert_not_called()
+
+    @patch.dict(os.environ, {"SAFE_INIT_NO_CHECK_JSON_SERIALIZATION": "false"})
+    @patch("safe_init.decorator.sentry_capture")
+    @patch("safe_init.decorator.log_warning")
+    def test_safe_wrapper_checks_json_serialization(self, mock_log_warning, mock_sentry_capture):
+        @safe_wrapper
+        def my_handler(event, context):
+            class UnserializableObject:
+                pass
+
+            return {"key": UnserializableObject()}
+
+        mock_lambda_context = LambdaContext(
+            invoke_id="invoke_id",
+            client_context={},
+            cognito_identity={},
+            epoch_deadline_time_in_ms=int(time.time() * 1000) + 10000,
+        )
+
+        result = my_handler({}, mock_lambda_context)
+        assert "key" in result
+        mock_log_warning.assert_called_once()
+        assert "Lambda result cannot be serialized to JSON" in mock_log_warning.call_args[0][0]
+        mock_sentry_capture.assert_called_once()
+
+    @patch.dict(os.environ, {"SAFE_INIT_NO_CHECK_JSON_SERIALIZATION": "true"})
+    @patch("safe_init.decorator.sentry_capture")
+    @patch("safe_init.decorator.log_warning")
+    def test_safe_wrapper_skips_json_serialization_check_when_disabled(self, mock_log_warning, mock_sentry_capture):
+        @safe_wrapper
+        def my_handler(event, context):
+            class UnserializableObject:
+                pass
+
+            return {"key": UnserializableObject()}
+
+        mock_lambda_context = LambdaContext(
+            invoke_id="invoke_id",
+            client_context={},
+            cognito_identity={},
+            epoch_deadline_time_in_ms=int(time.time() * 1000) + 10000,
+        )
+
+        result = my_handler({}, mock_lambda_context)
+        assert "key" in result
+        mock_log_warning.assert_not_called()
+        mock_sentry_capture.assert_not_called()
