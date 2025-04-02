@@ -1,7 +1,7 @@
 # Changelog
 
 ---
-## Unreleased
+## v1.4.0 (2025-04-02)
 ### New features
 - Safe Init now automatically checks if your Lambda function's return value can be serialized to JSON. If not, it will report the issue to Sentry while allowing execution to continue normally. This helps catch issues with returning non-serializable objects like UUID instances early without breaking your Lambda's execution flow.
 
