@@ -31,6 +31,7 @@ Safe Init is a Python library that provides a comprehensive set of tools for ini
 ### Resilience and Reliability
 - **Dead-Letter Queue (DLQ) Support**: Pushes failed events to a dead-letter queue for later processing, ensuring that no events are lost due to errors.
 - **Initialization Checks**: Detects missing Sentry initialization and Lambda init phase timeouts, preventing silent failures and providing early warning signs.
+- **JSON Serialization Checks**: Detects when Lambda results cannot be serialized to JSON, sending detailed information to Sentry while allowing execution to proceed.
 - **Timeout Notifications**: Sends notifications a configurable number of seconds before the Lambda timeout occurs, giving you a heads-up to investigate and address potential issues.
 - **AWS Secrets Resolution**: Automatically resolves AWS Secrets Manager secrets in environment variables, simplifying secret management and access.
 - **Unlimited Environment Variables**: Supports loading extra environment variables from a JSON file, allowing you to easily manage and configure your Lambda functions.
@@ -94,6 +95,7 @@ Safe Init provides a wide range of configuration options to customize its behavi
 - `SAFE_INIT_SECRET_CACHE_PREFIX` (optional): Prefix for cached secrets in Redis. Defaults to `safe-init-secret::`. Use this to specify the prefix for keys used to store cached secrets in Redis.
 - `SAFE_INIT_FAIL_ON_SECRET_RESOLUTION_ERROR` (optional): Set to `true` to fail the Lambda initialization if an error occurs during secret resolution. Safe Init will raise an exception if an error occurs during secret resolution, preventing the Lambda function from starting.
 - `SAFE_INIT_EXTRA_ENV_VARS_FILE` (optional): Path to a JSON file containing extra environment variables to load. Safe Init will load the environment variables from the specified file and add them to the Lambda environment.
+- `SAFE_INIT_NO_CHECK_JSON_SERIALIZATION` (optional): Set to `'true'` to disable JSON serialization checks for Lambda handler results. By default, Safe Init will check if the Lambda result is JSON serializable and send an exception to Sentry if not.
 
 With these configuration options, Safe Init provides a flexible and customizable way to enhance your Lambda functions' error handling, logging, and monitoring capabilities. Mix and match the options to suit your needs, and let Safe Init be your loyal companion on your Lambda adventures! 🚀
 

@@ -72,6 +72,14 @@ Receive proactive notifications before your Lambda function times out. This feat
 
 - `SAFE_INIT_NOTIFY_SEC_BEFORE_TIMEOUT`: Specifies the number of seconds before a Lambda timeout occurs when Safe Init should send a notification. This helps you become aware of and address timeout-related issues proactively.
 
+### JSON Serialization Checks
+
+Safe Init automatically checks if your Lambda function's return value can be properly serialized to JSON. If the result contains non-serializable objects (like custom classes, UUIDs, etc.), Safe Init will report the issue to Sentry while allowing execution to continue normally. This gives you early notification of serialization issues that would otherwise result in failed Lambda executions.
+
+**Configuration Options:**
+
+- `SAFE_INIT_NO_CHECK_JSON_SERIALIZATION`: Set to `true` to disable the automatic JSON serialization check. By default, Safe Init will check if the Lambda result is JSON serializable and send an exception to Sentry if not.
+
 ### AWS Secrets Manager Integration
 
 Safe Init integrates with AWS Secrets Manager, allowing you to securely store and retrieve sensitive information like API keys, database credentials, and other secrets. This feature ensures that your secrets are managed securely and are easily accessible within your Lambda functions.

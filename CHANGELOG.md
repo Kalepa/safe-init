@@ -1,6 +1,13 @@
 # Changelog
 
 ---
+## Unreleased
+### New features
+- Safe Init now automatically checks if your Lambda function's return value can be serialized to JSON. If not, it will report the issue to Sentry while allowing execution to continue normally. This helps catch issues with returning non-serializable objects like UUID instances early without breaking your Lambda's execution flow.
+
+### Development
+- Migrated the project to use uv for dependency management and virtual environments.
+
 ## v1.3.0 (2024-09-26)
 ### New features
 - Safe Init now allows you to work around the crazy 4KB limit on environment variables in AWS Lambda. Just put some of your environment variables in a JSON file (`.env.json` by default) and Safe Init will take care of the rest.
