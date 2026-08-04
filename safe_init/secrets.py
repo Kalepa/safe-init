@@ -1,11 +1,19 @@
+"""
+This module provides functions for resolving secrets referenced by environment variables.
+
+Exceptions are logged without their traceback, as the renderer used in the runtime environment serializes the
+local variables of every frame, which would expose the values of the secrets resolved so far.
+"""
+
 import json
 import os
+from collections import defaultdict
 from collections.abc import Mapping
 from typing import TYPE_CHECKING
 
 import boto3
 import redis
-from botocore.exceptions import ClientError
+from botocore.exceptions import BotoCoreError, ClientError
 
 from safe_init.error_utils import suppress_exceptions
 from safe_init.utils import bool_env
@@ -19,6 +27,7 @@ SECRET_SUFFIX = os.getenv("SAFE_INIT_SECRET_SUFFIX", os.getenv("SAFE_INIT_SECRET
 CACHE_TTL = int(os.getenv("SAFE_INIT_SECRET_CACHE_TTL", "1800"))  # default 30 minutes
 CACHE_PREFIX = os.getenv("SAFE_INIT_SECRET_CACHE_PREFIX", "safe-init-secret::")
 JSON_SECRET_SEPARATOR = "~"  # noqa: S105
+MAX_SECRETS_PER_BATCH = 20  # AWS Secrets Manager rejects BatchGetSecretValue calls with more IDs than this
 
 
 class SecretResolutionError(Exception):
@@ -62,17 +71,17 @@ def resolve_secrets(extra_env_vars: Mapping[str, str | None] | None = None) -> M
         try:
             fetched_secrets, errors = get_secrets_from_secrets_manager(secrets_not_in_cache)
 
-            if errors:
-                error_message = f"Failed to retrieve secrets: {errors}"
-                raise SecretResolutionError(error_message, errors)  # noqa: TRY301
-
             for secret_arn, secret_value in fetched_secrets.items():
                 save_secret_in_cache(secret_arn, secret_value)
                 secrets[secret_arn] = secret_value
+
+            if errors:
+                error_message = f"Failed to retrieve secrets: {errors}"
+                raise SecretResolutionError(error_message, errors)  # noqa: TRY301
         except Exception as e:
             if bool_env("SAFE_INIT_FAIL_ON_SECRET_RESOLUTION_ERROR"):
                 raise
-            log_warning("Failed to resolve some secrets", exc_info=e)
+            log_warning("Failed to resolve some secrets", error=repr(e))
 
     resolved_secrets = process_secrets(secret_arns, secrets)
 
@@ -140,6 +149,9 @@ def get_secrets_from_secrets_manager(secret_arns: list[str]) -> tuple[dict[str, 
     """
     Retrieves secrets from AWS Secrets Manager using the batch method.
 
+    The ARNs are requested in batches of at most `MAX_SECRETS_PER_BATCH`, as required by the API. A batch that
+    fails does not affect the remaining ones.
+
     Args:
         secret_arns (List[str]): A list of secret ARNs to retrieve.
 
@@ -149,33 +161,41 @@ def get_secrets_from_secrets_manager(secret_arns: list[str]) -> tuple[dict[str, 
         - A list of ARNs for secrets that failed to retrieve.
     """
     secrets_client = get_secrets_manager_client()
-    secrets = {}
-    errors = []
+    secrets: dict[str, str] = {}
+    errors: list[str] = []
 
-    # Strip json-key suffixes (if present) and create a unique set of secret ARNs
-    stripped_secret_arns = {_strip_json_key_prefix_if_present(arn) for arn in secret_arns}
+    # Strip json-key suffixes (if present), keeping track of the original ARNs each stripped ARN came from
+    original_secret_arns: dict[str, list[str]] = defaultdict(list)
+    for arn in secret_arns:
+        original_secret_arns[_strip_json_key_prefix_if_present(arn)].append(arn)
 
-    try:
-        response = secrets_client.batch_get_secret_value(SecretIdList=list(stripped_secret_arns))
+    stripped_secret_arns = list(original_secret_arns)
 
-        # Process the retrieved secrets and map them back to the original ARNs with suffixes
+    for batch_start in range(0, len(stripped_secret_arns), MAX_SECRETS_PER_BATCH):
+        batch = stripped_secret_arns[batch_start : batch_start + MAX_SECRETS_PER_BATCH]
+
+        try:
+            response = secrets_client.batch_get_secret_value(SecretIdList=batch)
+        except (BotoCoreError, ClientError) as e:
+            log_error("Failed to retrieve secrets from Secrets Manager", error=str(e), secret_arns=batch)
+            for stripped_secret_arn in batch:
+                errors.extend(original_secret_arns[stripped_secret_arn])
+            continue
+
+        # Map the retrieved secrets back to all the original ARNs they were requested with
         for secret in response.get("SecretValues", []):
-            original_secret_arn = secret["ARN"]
             secret_value = secret.get("SecretString")
+            if secret_value is None:  # binary-only secrets are not supported
+                continue
 
-            # Map the secret value to all original ARNs with suffixes
-            for arn in secret_arns:
-                if _strip_json_key_prefix_if_present(arn) == original_secret_arn:
-                    secrets[arn] = secret_value
+            for arn in original_secret_arns.get(secret["ARN"], []):
+                secrets[arn] = secret_value
 
         for error in response.get("Errors", []):
             if error["ErrorCode"] == "ResourceNotFoundException":
                 log_warning("Secret not found in Secrets Manager", secret_arn=error["SecretId"])
             else:
                 errors.append(f"{error['SecretId']}: {error['Message']}")
-    except ClientError as e:
-        log_error("Failed to retrieve secrets from Secrets Manager", exc_info=e)
-        errors.extend(secret_arns)
 
     return secrets, errors
 
@@ -208,7 +228,7 @@ def process_secrets(secret_arns: dict[str, str], secrets: dict[str, str]) -> dic
         except Exception as e:
             if bool_env("SAFE_INIT_FAIL_ON_SECRET_RESOLUTION_ERROR"):
                 raise
-            log_warning("Failed to process secret", secret_arn=secret_arn, exc_info=e)
+            log_warning("Failed to process secret", secret_arn=secret_arn, error=repr(e))
 
     return resolved_secrets
 
@@ -216,8 +236,8 @@ def process_secrets(secret_arns: dict[str, str], secrets: dict[str, str]) -> dic
 def get_redis_client() -> redis.Redis:
     if "_secrets_redis_client" not in globals() or not globals()["_secrets_redis_client"]:
         globals()["_secrets_redis_client"] = redis.Redis(
-            host=os.getenv("SAFE_INIT_SECRET_CACHE_REDIS_HOST"),
-            port=os.getenv("SAFE_INIT_SECRET_CACHE_REDIS_PORT"),
+            host=os.getenv("SAFE_INIT_SECRET_CACHE_REDIS_HOST", "localhost"),
+            port=int(os.getenv("SAFE_INIT_SECRET_CACHE_REDIS_PORT", "6379")),
             db=int(os.getenv("SAFE_INIT_SECRET_CACHE_REDIS_DB", "0")),
             username=os.getenv("SAFE_INIT_SECRET_CACHE_REDIS_USERNAME"),
             password=os.getenv("SAFE_INIT_SECRET_CACHE_REDIS_PASSWORD"),
