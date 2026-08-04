@@ -3,7 +3,7 @@ import os
 import unittest
 from unittest.mock import ANY, MagicMock, patch
 
-from botocore.exceptions import ClientError
+from botocore.exceptions import BotoCoreError, ClientError
 
 from safe_init.secrets import (
     MAX_SECRETS_PER_BATCH,
@@ -335,6 +335,10 @@ class TestSecretResolution(unittest.TestCase):
             SecretIdList=["arn:aws:secretsmanager:us-east-1:123456789012:secret:secret1"]
         )
 
+    def test_batch_size_matches_the_aws_limit(self):
+        # BatchGetSecretValue rejects requests with more secret IDs than this
+        self.assertEqual(20, MAX_SECRETS_PER_BATCH)
+
     @patch("safe_init.secrets.get_secrets_manager_client")
     def test_get_secret_from_secrets_manager_splits_into_batches(self, mock_get_secrets_manager_client):
         arns = [
@@ -380,51 +384,63 @@ class TestSecretResolution(unittest.TestCase):
             for i in range(MAX_SECRETS_PER_BATCH + 5)
         ]
         failed_arns, fetched_arns = arns[:MAX_SECRETS_PER_BATCH], arns[MAX_SECRETS_PER_BATCH:]
-        error = ClientError({"Error": {"Code": "InvalidParameterException"}}, "BatchGetSecretValue")
-        mock_secrets_manager_client = MagicMock()
-        mock_secrets_manager_client.batch_get_secret_value.side_effect = [
-            error,
-            {
-                "SecretValues": [
-                    {"ARN": arn.removesuffix("~key"), "SecretString": json.dumps({"key": "secret_value"})}
-                    for arn in fetched_arns
-                ]
-            },
+        errors_raised = [
+            ClientError({"Error": {"Code": "InvalidParameterException"}}, "BatchGetSecretValue"),
+            BotoCoreError(),
         ]
-        mock_get_secrets_manager_client.return_value = mock_secrets_manager_client
 
-        secret_values, errors = get_secrets_from_secrets_manager(arns)
+        for error_raised in errors_raised:
+            with self.subTest(error=type(error_raised).__name__):
+                mock_secrets_manager_client = MagicMock()
+                mock_secrets_manager_client.batch_get_secret_value.side_effect = [
+                    error_raised,
+                    {
+                        "SecretValues": [
+                            {"ARN": arn.removesuffix("~key"), "SecretString": json.dumps({"key": "secret_value"})}
+                            for arn in fetched_arns
+                        ]
+                    },
+                ]
+                mock_get_secrets_manager_client.return_value = mock_secrets_manager_client
 
-        self.assertEqual(failed_arns, errors)
-        self.assertEqual(set(fetched_arns), set(secret_values))
-        self.assertEqual(
-            {"error": ANY, "secret_arns": [arn.removesuffix("~key") for arn in failed_arns]},
-            mock_log_error.call_args.kwargs,
-        )
+                secret_values, errors = get_secrets_from_secrets_manager(arns)
+
+                self.assertEqual(failed_arns, errors)
+                self.assertEqual(set(fetched_arns), set(secret_values))
+                self.assertEqual(
+                    {"error": ANY, "secret_arns": [arn.removesuffix("~key") for arn in failed_arns]},
+                    mock_log_error.call_args.kwargs,
+                )
 
     def test_secret_values_are_never_logged(self):
         canary = "the-value-of-the-secret"
-        arns = {
-            "SECRET1_SECRET_ARN": "arn:aws:secretsmanager:us-east-1:123456789012:secret:secret1",
-            "SECRET2_SECRET_ARN": "arn:aws:secretsmanager:us-east-1:123456789012:secret:secret2~missing_key",
-        }
-        mock_secrets_manager_client = MagicMock()
-        mock_secrets_manager_client.batch_get_secret_value.return_value = {
-            "SecretValues": [
-                {"ARN": arns["SECRET1_SECRET_ARN"], "SecretString": canary},
-                {"ARN": arns["SECRET2_SECRET_ARN"].removesuffix("~missing_key"), "SecretString": "{}"},
-            ],
-            "Errors": [
-                {
-                    "SecretId": "arn:aws:secretsmanager:us-east-1:123456789012:secret:secret3",
-                    "ErrorCode": "AccessDeniedException",
-                    "Message": "Access denied",
-                }
-            ],
+        fetched_arn = "arn:aws:secretsmanager:us-east-1:123456789012:secret:secret1"
+        unprocessable_arn = "arn:aws:secretsmanager:us-east-1:123456789012:secret:secret2"
+        unreachable_arn = "arn:aws:secretsmanager:us-east-1:123456789012:secret:secret3"
+        responses = {
+            fetched_arn: {"SecretValues": [{"ARN": fetched_arn, "SecretString": canary}]},
+            unprocessable_arn: {"SecretValues": [{"ARN": unprocessable_arn, "SecretString": canary}]},
         }
 
+        def batch_get_secret_value(**kwargs):
+            (secret_arn,) = kwargs["SecretIdList"]
+            if secret_arn == unreachable_arn:
+                raise ClientError({"Error": {"Code": "InvalidParameterException"}}, "BatchGetSecretValue")
+            return responses[secret_arn]
+
+        mock_secrets_manager_client = MagicMock()
+        mock_secrets_manager_client.batch_get_secret_value.side_effect = batch_get_secret_value
+
+        # One secret per batch, so that a batch fails only after another one has already been fetched
         with (
-            env(arns),
+            env(
+                {
+                    "SECRET1_SECRET_ARN": fetched_arn,
+                    "SECRET2_SECRET_ARN": f"{unprocessable_arn}~missing_key",
+                    "SECRET3_SECRET_ARN": unreachable_arn,
+                }
+            ),
+            patch("safe_init.secrets.MAX_SECRETS_PER_BATCH", 1),
             patch("safe_init.secrets.get_secret_from_cache", return_value=None),
             patch("safe_init.secrets.save_secret_in_cache"),
             patch("safe_init.secrets.get_secrets_manager_client", return_value=mock_secrets_manager_client),
@@ -434,28 +450,46 @@ class TestSecretResolution(unittest.TestCase):
         ):
             resolve_secrets()
 
-        logged_calls = mock_log_debug.call_args_list + mock_log_warning.call_args_list + mock_log_error.call_args_list
-        assert logged_calls
-        for call in logged_calls:
+        # Failing to reach Secrets Manager, to process a secret, and to resolve them all are logged separately
+        assert mock_log_error.called
+        self.assertEqual(2, mock_log_warning.call_count)
+        assert mock_log_debug.called
+
+        for call in mock_log_debug.call_args_list + mock_log_warning.call_args_list + mock_log_error.call_args_list:
             # A traceback renders the local variables of every frame, which hold the values of the secrets
             assert "exc_info" not in call.kwargs, call
             assert canary not in repr(call.args) + repr(call.kwargs), call
 
     @patch("safe_init.secrets.get_secrets_manager_client")
     def test_get_secret_from_secrets_manager_deduplicates_json_secret_arns(self, mock_get_secrets_manager_client):
-        arn = "arn:aws:secretsmanager:us-east-1:123456789012:secret:secret1"
+        first_arn = "arn:aws:secretsmanager:us-east-1:123456789012:secret:secret1"
+        second_arn = "arn:aws:secretsmanager:us-east-1:123456789012:secret:secret2"
         secret_string = json.dumps({"key1": "value1", "key2": "value2"})
         mock_secrets_manager_client = MagicMock()
         mock_secrets_manager_client.batch_get_secret_value.return_value = {
-            "SecretValues": [{"ARN": arn, "SecretString": secret_string}]
+            "SecretValues": [
+                {"ARN": first_arn, "SecretString": secret_string},
+                {"ARN": second_arn, "SecretString": secret_string},
+            ]
         }
         mock_get_secrets_manager_client.return_value = mock_secrets_manager_client
 
-        secret_values, errors = get_secrets_from_secrets_manager([f"{arn}~key1", f"{arn}~key2"])
+        # Interleaved, so that a set-based deduplication would not preserve the order the ARNs were seen in
+        secret_values, errors = get_secrets_from_secrets_manager(
+            [f"{first_arn}~key1", f"{second_arn}~key1", f"{first_arn}~key2", f"{second_arn}~key2"]
+        )
 
-        assert errors == []
-        assert secret_values == {f"{arn}~key1": secret_string, f"{arn}~key2": secret_string}
-        mock_secrets_manager_client.batch_get_secret_value.assert_called_once_with(SecretIdList=[arn])
+        self.assertEqual([], errors)
+        self.assertEqual(
+            {
+                f"{first_arn}~key1": secret_string,
+                f"{first_arn}~key2": secret_string,
+                f"{second_arn}~key1": secret_string,
+                f"{second_arn}~key2": secret_string,
+            },
+            secret_values,
+        )
+        mock_secrets_manager_client.batch_get_secret_value.assert_called_once_with(SecretIdList=[first_arn, second_arn])
 
     @patch("safe_init.secrets.get_secret_from_cache")
     @patch("safe_init.secrets.save_secret_in_cache")
