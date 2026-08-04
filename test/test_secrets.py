@@ -207,7 +207,7 @@ class TestSecretResolution(unittest.TestCase):
         self.assertEqual(mock_redis_client, redis_client)
         mock_redis.assert_called_once_with(
             host="localhost",
-            port="6379",
+            port=6379,
             db=0,
             username="username",
             password="password",

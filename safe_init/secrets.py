@@ -236,8 +236,8 @@ def process_secrets(secret_arns: dict[str, str], secrets: dict[str, str]) -> dic
 def get_redis_client() -> redis.Redis:
     if "_secrets_redis_client" not in globals() or not globals()["_secrets_redis_client"]:
         globals()["_secrets_redis_client"] = redis.Redis(
-            host=os.getenv("SAFE_INIT_SECRET_CACHE_REDIS_HOST"),
-            port=os.getenv("SAFE_INIT_SECRET_CACHE_REDIS_PORT"),
+            host=os.getenv("SAFE_INIT_SECRET_CACHE_REDIS_HOST", "localhost"),
+            port=int(os.getenv("SAFE_INIT_SECRET_CACHE_REDIS_PORT", "6379")),
             db=int(os.getenv("SAFE_INIT_SECRET_CACHE_REDIS_DB", "0")),
             username=os.getenv("SAFE_INIT_SECRET_CACHE_REDIS_USERNAME"),
             password=os.getenv("SAFE_INIT_SECRET_CACHE_REDIS_PASSWORD"),
