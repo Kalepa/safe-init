@@ -1,6 +1,14 @@
 # Changelog
 
 ---
+## v1.4.1 (2026-08-04)
+### Bug fixes
+- Safe Init now fetches secrets from AWS Secrets Manager in batches of 20, the most the `BatchGetSecretValue` API accepts in a single call. Resolving more than 20 uncached secrets used to fail all of them. A batch that fails no longer discards the secrets resolved by the other ones.
+
+### Improvements
+- Secret resolution failures are now logged without their traceback. The renderer used in the runtime environment serializes the local variables of every frame, which would expose the values of the secrets resolved so far.
+- `boto3` is now required in a version that provides the `BatchGetSecretValue` API.
+
 ## v1.4.0 (2025-04-02)
 ### New features
 - Safe Init now automatically checks if your Lambda function's return value can be serialized to JSON. If not, it will report the issue to Sentry while allowing execution to continue normally. This helps catch issues with returning non-serializable objects like UUID instances early without breaking your Lambda's execution flow.
