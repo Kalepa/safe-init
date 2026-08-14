@@ -1,6 +1,6 @@
 [project]
 name = "safe-init"
-version = "1.4.1"
+version = "2.0.0"
 description = "Safe Init is a Python library that enhances AWS Lambda functions with advanced error handling, logging, monitoring, and resilience features, providing comprehensive observability and reliability for serverless applications."
 authors = [{ name = "Maciej Wilczyński", email = "maciej@lupine.software" }]
 requires-python = ">=3.11,<3.12"
@@ -21,7 +21,7 @@ classifiers = [
 ]
 dependencies = [
     "structlog>=24.1.0,<25",
-    "sentry-sdk<2.0.0",
+    "sentry-sdk>=2,<3",
     "requests>=2.31.0,<3",
     "awslambdaric>=2.0.10",
     "boto3>=1.29.7",
