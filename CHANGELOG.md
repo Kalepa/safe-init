@@ -1,6 +1,13 @@
 # Changelog
 
 ---
+## Unreleased
+### Bug fixes
+- Safe Init no longer re-initializes Sentry when reporting an error if the application has already initialized it. Re-initializing replaced the application's Sentry client, discarding its options: `before_send` hooks (e.g. ones scrubbing sensitive data) were skipped, and settings such as the release and sample rates were lost for the rest of the execution.
+
+### Improvements
+- Replaced the `sentry_sdk.Hub` and `sentry_sdk.push_scope` APIs, deprecated in `sentry-sdk` 2.x, with `sentry_sdk.get_client` and `sentry_sdk.new_scope`.
+
 ## v2.1.0 (2026-10-05)
 ### New features
 - Safe Init now resolves secrets again in the first invocation after a SnapStart restore. Before, every restored execution environment used the secrets resolved when Lambda published the version. Functions that do not use SnapStart are not affected.
