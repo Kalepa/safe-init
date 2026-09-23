@@ -1,6 +1,13 @@
 # Changelog
 
 ---
+## Unreleased
+### Bug fixes
+- Safe Init no longer re-initializes Sentry when reporting an error if the application has already initialized it. Re-initializing replaced the application's Sentry client, discarding its options: `before_send` hooks (e.g. ones scrubbing sensitive data) were skipped, and settings such as the release and sample rates were lost for the rest of the execution.
+
+### Improvements
+- Replaced the `sentry_sdk.Hub` and `sentry_sdk.push_scope` APIs, deprecated in `sentry-sdk` 2.x, with `sentry_sdk.get_client` and `sentry_sdk.new_scope`.
+
 ## v1.4.1 (2026-08-04)
 ### Bug fixes
 - Safe Init now fetches secrets from AWS Secrets Manager in batches of 20, the most the `BatchGetSecretValue` API accepts in a single call. Resolving more than 20 uncached secrets used to fail all of them. A batch that fails no longer discards the secrets resolved by the other ones.
