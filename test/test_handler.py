@@ -1,5 +1,6 @@
 import os
 import random
+import sys
 from unittest.mock import ANY, MagicMock, patch
 
 
@@ -148,3 +149,57 @@ class TestHandler:
 
         _pre_import_hook("test_handler")
         mock_slack_notify.assert_not_called()
+
+
+class TestRefreshSecretsAfterRestore:
+    @patch.dict(os.environ, {"AWS_LAMBDA_INITIALIZATION_TYPE": "on-demand"})
+    def test_other_initialization_types_get_the_handler_unchanged(self):
+        from safe_init.handler import _refresh_secrets_after_restore
+
+        func = MagicMock()
+        with patch.dict(sys.modules, {"snapshot_restore_py": MagicMock()}) as modules:
+            assert _refresh_secrets_after_restore(func, {}, {}) is func
+            modules["snapshot_restore_py"].register_after_restore.assert_not_called()
+
+    @patch.dict(os.environ, {"AWS_LAMBDA_INITIALIZATION_TYPE": "snap-start"})
+    @patch("safe_init.handler.reset_clients")
+    @patch("safe_init.handler.resolve_secrets")
+    def test_first_invocation_after_restore_resolves_secrets_again(self, mock_resolve, mock_reset_clients):
+        from safe_init.handler import _refresh_secrets_after_restore
+
+        hooks = []
+        env_vars = {"DB_PASSWORD": "old", "PLAIN": "extra"}
+        mock_resolve.return_value = {"DB_PASSWORD": "new", "PLAIN": "secret"}
+        func = MagicMock(__name__="handler")
+        with patch.dict(sys.modules, {"snapshot_restore_py": MagicMock(register_after_restore=hooks.append)}):
+            wrapped = _refresh_secrets_after_restore(func, env_vars, {"PLAIN": "extra"})
+
+        wrapped("event", "context")
+        mock_resolve.assert_not_called()
+
+        hooks[0]()
+        mock_reset_clients.assert_called_once()
+        wrapped("event", "context")
+        wrapped("event", "context")
+
+        mock_resolve.assert_called_once_with({"PLAIN": "extra"})
+        assert env_vars == {"DB_PASSWORD": "new", "PLAIN": "extra"}
+        assert func.call_count == 3
+
+    @patch.dict(os.environ, {"AWS_LAMBDA_INITIALIZATION_TYPE": "snap-start"})
+    @patch("safe_init.handler.reset_clients", MagicMock())
+    @patch("safe_init.handler.resolve_secrets", side_effect=RuntimeError("Secrets Manager is down"))
+    def test_failed_refresh_keeps_the_snapshot_values(self, mock_resolve):
+        from safe_init.handler import _refresh_secrets_after_restore
+
+        hooks = []
+        env_vars = {"DB_PASSWORD": "old"}
+        func = MagicMock(__name__="handler")
+        with patch.dict(sys.modules, {"snapshot_restore_py": MagicMock(register_after_restore=hooks.append)}):
+            wrapped = _refresh_secrets_after_restore(func, env_vars, {})
+
+        hooks[0]()
+        wrapped("event", "context")
+
+        assert env_vars == {"DB_PASSWORD": "old"}
+        func.assert_called_once_with("event", "context")
