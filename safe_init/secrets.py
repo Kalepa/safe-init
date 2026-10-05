@@ -251,6 +251,17 @@ def get_secrets_manager_client() -> "Client":
     return globals()["_secrets_manager_client"]
 
 
+def reset_clients() -> None:
+    """
+    Drops the cached Redis and Secrets Manager clients, so the next call opens new connections.
+
+    A SnapStart snapshot keeps the connections that initialization opened, and they are not valid in a restored
+    execution environment.
+    """
+    globals()["_secrets_redis_client"] = None
+    globals()["_secrets_manager_client"] = None
+
+
 def is_secret_cache_enabled() -> bool:
     """
     Returns whether the secret cache is enabled and configured properly.
