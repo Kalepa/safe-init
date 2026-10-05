@@ -1,6 +1,10 @@
 # Changelog
 
 ---
+## v2.1.0 (2026-10-05)
+### New features
+- Safe Init now resolves secrets again in the first invocation after a SnapStart restore. Before, every restored execution environment used the secrets resolved when Lambda published the version. Functions that do not use SnapStart are not affected.
+
 ## v1.4.1 (2026-08-04)
 ### Bug fixes
 - Safe Init now fetches secrets from AWS Secrets Manager in batches of 20, the most the `BatchGetSecretValue` API accepts in a single call. Resolving more than 20 uncached secrets used to fail all of them. A batch that fails no longer discards the secrets resolved by the other ones.
