@@ -40,14 +40,17 @@ def sentry_capture(
     :return: True if the exception was successfully captured, False otherwise.
     """
     if USE_SENTRY:
+        # Initialize Sentry only if the application hasn't done it already. Re-initializing would replace the
+        # application's client, discarding its options (e.g. `before_send` hooks scrubbing sensitive data).
         try:
-            sentry_sdk.init(os.environ.get("SENTRY_DSN", ""), environment=os.environ.get("SAFE_INIT_ENV", "dev"))
+            if not sentry_sdk.get_client().is_active():
+                sentry_sdk.init(os.environ.get("SENTRY_DSN", ""), environment=os.environ.get("SAFE_INIT_ENV", "dev"))
         except Exception:
             log_warning("Failed to initialize Sentry", exc_info=True)
             return False
 
         try:
-            with sentry_sdk.push_scope() as scope:
+            with sentry_sdk.new_scope() as scope:
                 if fingerprint:
                     scope.fingerprint = fingerprint
                 if tags:
