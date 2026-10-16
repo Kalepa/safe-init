@@ -4,6 +4,7 @@ import unittest
 from unittest.mock import ANY, MagicMock, patch
 
 from botocore.exceptions import BotoCoreError, ClientError
+from redis.retry import Retry
 
 from safe_init.secrets import (
     MAX_SECRETS_PER_BATCH,
@@ -211,7 +212,12 @@ class TestSecretResolution(unittest.TestCase):
             db=0,
             username="username",
             password="password",
+            retry=ANY,
+            protocol=2,
         )
+        retry = mock_redis.call_args.kwargs["retry"]
+        self.assertIsInstance(retry, Retry)
+        self.assertEqual(retry._retries, 0)
 
     @patch("safe_init.secrets.boto3.client")
     def test_get_secrets_manager_client(self, mock_boto3_client):

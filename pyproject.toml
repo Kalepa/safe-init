@@ -1,6 +1,6 @@
 [project]
 name = "safe-init"
-version = "2.1.0"
+version = "2.2.0"
 description = "Safe Init is a Python library that enhances AWS Lambda functions with advanced error handling, logging, monitoring, and resilience features, providing comprehensive observability and reliability for serverless applications."
 authors = [{ name = "Maciej Wilczyński", email = "maciej@lupine.software" }]
 requires-python = ">=3.11,<3.12"
@@ -28,7 +28,7 @@ dependencies = [
     "boto3-type-annotations>=0.3.1",
     "datadog-lambda",
     "ddtrace",
-    "redis>=4.0.0,<6",
+    "redis>=5.0.0,<9",
 ]
 
 [project.urls]
