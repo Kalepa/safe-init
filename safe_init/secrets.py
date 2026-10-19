@@ -14,6 +14,8 @@ from typing import TYPE_CHECKING
 import boto3
 import redis
 from botocore.exceptions import BotoCoreError, ClientError
+from redis.backoff import NoBackoff
+from redis.retry import Retry
 
 from safe_init.error_utils import suppress_exceptions
 from safe_init.utils import bool_env
@@ -241,6 +243,9 @@ def get_redis_client() -> redis.Redis:
             db=int(os.getenv("SAFE_INIT_SECRET_CACHE_REDIS_DB", "0")),
             username=os.getenv("SAFE_INIT_SECRET_CACHE_REDIS_USERNAME"),
             password=os.getenv("SAFE_INIT_SECRET_CACHE_REDIS_PASSWORD"),
+            # Not redis-py's defaults (8.0: 10 retries, RESP3): retries would stall init once per secret lookup.
+            retry=Retry(NoBackoff(), 0),
+            protocol=2,
         )
     return globals()["_secrets_redis_client"]
 
