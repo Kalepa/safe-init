@@ -21,7 +21,7 @@ class TestHandler:
         )
         del os.environ["SAFE_INIT_HANDLER"]
 
-    @patch("sentry_sdk.Hub", MagicMock())
+    @patch("sentry_sdk.get_client", MagicMock())
     @patch("safe_init.slack.slack_notify")
     @patch("test.test_module.test_handler")
     def test_no_slack_notification_on_uninitialized_sentry(self, mock_handler, mock_slack):

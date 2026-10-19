@@ -29,6 +29,35 @@ def test_sentry_capture_with_sentry_installed(mock_capture, mock_init, mock_log_
     mock_capture.assert_called_once_with(exc)
 
 
+@patch.dict(os.environ, {"SENTRY_DSN": "https://public@example.invalid/1", "UNIT_TEST_SENTRY": "1"})
+def test_sentry_capture_preserves_application_client():
+    import sentry_sdk
+
+    captured_events = []
+
+    def before_send(event, hint):
+        captured_events.append(event)
+        return None  # Drop the event so that nothing is sent over the network
+
+    sentry_sdk.init(os.environ["SENTRY_DSN"], before_send=before_send, release="app@1.2.3")
+    app_client = sentry_sdk.get_client()
+
+    from safe_init.sentry import sentry_capture
+
+    try:
+        with patch("sentry_sdk.init") as mock_init:
+            assert sentry_capture(Exception("test exception"), tags={"t1": "value 1"}) is True
+
+        mock_init.assert_not_called()
+        assert sentry_sdk.get_client() is app_client
+        assert app_client.options["release"] == "app@1.2.3"
+        assert len(captured_events) == 1
+        assert captured_events[0]["exception"]["values"][0]["value"] == "test exception"
+        assert captured_events[0]["tags"] == {"t1": "value 1"}
+    finally:
+        app_client.close()
+
+
 @patch.dict(os.environ, {"SENTRY_DSN": "test_dsn"})
 @patch("sentry_sdk.init", side_effect=Exception("test init exception"))
 @patch("sentry_sdk.capture_exception")
@@ -104,11 +133,11 @@ def test_sentry_capture_with_none_sentry_dsn(mock_warning):
 
 @patch.dict(os.environ, {"SENTRY_DSN": "test_dsn", "UNIT_TEST_SENTRY": "1"})
 @patch("sentry_sdk.init")
-@patch("sentry_sdk.push_scope")
+@patch("sentry_sdk.new_scope")
 @patch("sentry_sdk.capture_exception")
-def test_sentry_capture_with_fingerprint(mock_capture, mock_push_scope, mock_init):
+def test_sentry_capture_with_fingerprint(mock_capture, mock_new_scope, mock_init):
     mock_scope = MagicMock()
-    mock_push_scope.return_value.__enter__.return_value = mock_scope
+    mock_new_scope.return_value.__enter__.return_value = mock_scope
     from safe_init.sentry import sentry_capture
 
     fingerprint = "test123"
@@ -122,11 +151,11 @@ def test_sentry_capture_with_fingerprint(mock_capture, mock_push_scope, mock_ini
 
 @patch.dict(os.environ, {"SENTRY_DSN": "test_dsn", "UNIT_TEST_SENTRY": "1"})
 @patch("sentry_sdk.init")
-@patch("sentry_sdk.push_scope")
+@patch("sentry_sdk.new_scope")
 @patch("sentry_sdk.capture_exception")
-def test_sentry_capture_with_tags(mock_capture, mock_push_scope, mock_init):
+def test_sentry_capture_with_tags(mock_capture, mock_new_scope, mock_init):
     mock_scope = MagicMock()
-    mock_push_scope.return_value.__enter__.return_value = mock_scope
+    mock_new_scope.return_value.__enter__.return_value = mock_scope
     from safe_init.sentry import sentry_capture
 
     tags = {"t1": "value 1", "t2": "value 2"}
@@ -141,11 +170,11 @@ def test_sentry_capture_with_tags(mock_capture, mock_push_scope, mock_init):
 @patch.dict(os.environ, {"SENTRY_DSN": "test_dsn", "UNIT_TEST_SENTRY": "1"})
 @patch("sentry_sdk.init")
 @patch("safe_init.sentry.log_warning")
-@patch("sentry_sdk.push_scope")
+@patch("sentry_sdk.new_scope")
 @patch("sentry_sdk.capture_exception")
-def test_sentry_capture_with_attachments(mock_capture, mock_push_scope, mock_log_warning, mock_init):
+def test_sentry_capture_with_attachments(mock_capture, mock_new_scope, mock_log_warning, mock_init):
     mock_scope = MagicMock()
-    mock_push_scope.return_value.__enter__.return_value = mock_scope
+    mock_new_scope.return_value.__enter__.return_value = mock_scope
     from safe_init.sentry import sentry_capture
 
     inner = {"t1": "value 1", "t2": "value 2"}

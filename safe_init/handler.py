@@ -150,7 +150,7 @@ def _init_handler() -> Callable:
             wrapped_handler = _refresh_secrets_after_restore(wrapped_handler, custom_env, extra_env_vars)
         exec_result = safe_wrapper(wrapped_handler)
 
-        if not bool_env("SAFE_INIT_NO_DETECT_UNINITIALIZED_SENTRY") and not get_sentry_sdk().Hub.current.client:
+        if not bool_env("SAFE_INIT_NO_DETECT_UNINITIALIZED_SENTRY") and not get_sentry_sdk().get_client().is_active():
             msg = "Detected missing Sentry initialization"
             slack_notify(
                 msg,
