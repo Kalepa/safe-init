@@ -5,6 +5,7 @@ Based on https://github.com/getsentry/sentry-python/blob/46c24ea70a47ced2411f9d6
 import os
 import threading
 import time
+from contextvars import copy_context
 from typing import Any
 
 from safe_init import tracer
@@ -72,11 +73,23 @@ class TimeoutThread(threading.Thread):
         self.call_kwargs = call_kwargs
         self.execution_fingerprint = execution_fingerprint
         self._stop_event = threading.Event()
+        self._reporting_overrides = [
+            (variable, value)
+            for variable, value in copy_context().items()
+            if variable.name in {"safe_init_logger_getter", "safe_init_slack_webhook_url"}
+        ]
 
     def stop(self) -> None:
         self._stop_event.set()
 
     def run(self) -> None:
+        """Carry Safe Init configuration without replacing SDKs' worker-thread context."""
+        context = copy_context()
+        for variable, value in self._reporting_overrides:
+            context.run(variable.set, value)
+        context.run(self._run)
+
+    def _run(self) -> None:
         # Save the thread start time
         thread_start_time = time.time()
         log_debug("Timeout thread started", waiting_time=self.waiting_time, start_time=thread_start_time)
