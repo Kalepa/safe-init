@@ -20,7 +20,7 @@ classifiers = [
     "Typing :: Typed",
 ]
 dependencies = [
-    "structlog>=24.1.0,<25",
+    "structlog>=24.1.0,<27",
     "sentry-sdk>=2,<4",
     "requests>=2.31.0,<3",
     "awslambdaric>=2.0.10",
